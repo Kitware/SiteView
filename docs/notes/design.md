@@ -9,7 +9,11 @@ SiteView is intended for visualizing simulation output from EAM, the [E3SM](http
 
 The ArrowFlow example at [https://trame.readthedocs.io/en/latest/](https://trame.readthedocs.io/en/latest/) already has most of the key components we'd like to have for SiteView. Below are some initial thoughts.
 
-- 3D (volume) rendering of some variable(s) in the region surrounding the site, with a vertical line indicating the site location.
+- 3D (volume and surface) rendering of some variable(s) in the region surrounding the site, with a vertical line indicating the site location.
+- 2D slices:
+   - latitute-lev cross sections
+   - longitude-lev cross sections
+   - vertical cross sections with an arbitrary compass degree?
 - Charts showing time evolution of the 3D-rendered variable(s) at the site as well as additional physical quantities at the site. These charts will be static, with time shown on the x-axis, and a line perpendicular to the x-axis indicating the current time of the 3D rendering.
     - For variables with a vertical (lev or ilev) dimension, these charts will be 2D color-shading plots, with the y-axis being the vertical coordinate.
     - For variables with no vertical dimension, the y-axis will be the value of the physical quantity.
@@ -22,4 +26,4 @@ The ArrowFlow example at [https://trame.readthedocs.io/en/latest/](https://trame
   - a lat-lon box, which will be useful for low-latitude and mid-latitude sites;
   - a circle with a user-specified radius in km, which might be more useful for polar regions.
 - Allow user to select multiple variables to be displayed as (static or animated) charts in the same session.
-- Do we also want 3D rendering of multiple quantities? Possibly. Let's discuss.
+- Note from July 2, 2026: a colleague from the E3SM Atmosphere Group requested what I would call "SiteCompare", i.e., loading multiple simulations and comparing/probing them simultaneously.
