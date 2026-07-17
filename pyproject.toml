@@ -6,12 +6,12 @@ authors = [
     {name = "Kitware Inc."},
 ]
 dependencies = [
-    "trame>=3.12",
+    "trame>=3.13.2",
     "trame-vuetify",
-    "trame-rca",
+    "trame-rca[turbo]>=2.6",
     "trame-dockview",
-    "vtk>=9.3",
-    "numpy",
+    "trame-dataclass >=2.1.3",
+    "pyproj>=3.6.1",
     "netCDF4>=1.6.5",
 ]
 requires-python = ">=3.12"
@@ -100,8 +100,18 @@ isort.required-imports = []
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["T20", "PLC0415"]
 "noxfile.py" = ["T20"]
-"src/**" = ["SIM117"]
 "examples/**" = ["T20", "INP001"]
+"src/**" = ["SIM117", "T"]
+"src/e3sm_siteview/plugins/**" = [
+    "PLW",
+    "ARG",
+    "RET",
+    "PLC",
+    "SIM",
+    "EM",
+    "PGH",
+    "T",
+]
 
 [tool.semantic_release]
 version_toml = [

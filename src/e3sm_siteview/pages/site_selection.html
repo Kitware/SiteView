@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E3SM SiteView — Site Selection</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@3.7.4/dist/vuetify.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      html,
+      body {
+        font-family: "Roboto", sans-serif;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      #app,
+      .v-application {
+        height: 100%;
+      }
+      .v-application__wrap {
+        height: 100vh !important;
+        min-height: 100vh !important;
+        overflow: hidden;
+      }
+
+      .hero {
+        background: linear-gradient(
+          135deg,
+          #0f2740 0%,
+          #1e4d6b 45%,
+          #2f7a8c 100%
+        );
+      }
+
+      .main-shell {
+        height: 100%;
+        overflow: hidden;
+      }
+      .shell-container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .stepper-card {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+      .stepper-card > .v-stepper-header {
+        flex: 0 0 auto;
+      }
+      .stepper-card .v-stepper-window {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        height: auto !important;
+        margin: 0 !important;
+        overflow: hidden;
+      }
+      .stepper-card .v-window__container {
+        height: 100% !important;
+      }
+      .stepper-card .v-window-item {
+        height: 100%;
+      }
+      .step-pane {
+        height: 100%;
+        overflow-y: auto;
+      }
+      .actions-bar {
+        flex: 0 0 auto;
+      }
+
+      .coord-preview {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 2 / 1;
+        border-radius: 12px;
+        overflow: hidden;
+        background: url("https://upload.wikimedia.org/wikipedia/commons/8/83/Equirectangular_projection_SW.jpg");
+        background-size: 100% 100%;
+        background-position: center;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .coord-equator {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 1px dashed rgba(255, 255, 255, 0.35);
+      }
+
+      .coord-meridian {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        border-left: 1px dashed rgba(255, 255, 255, 0.35);
+      }
+
+      .coord-marker {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        margin-left: -7px;
+        margin-top: -7px;
+        border-radius: 50%;
+        background: #ff7043;
+        box-shadow:
+          0 0 0 4px rgba(255, 112, 67, 0.28),
+          0 2px 6px rgba(0, 0, 0, 0.4);
+        transition:
+          left 0.25s ease,
+          top 0.25s ease;
+      }
+
+      .coord-radius {
+        position: absolute;
+        border: 2px dashed rgba(255, 213, 79, 0.85);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition:
+          left 0.25s ease,
+          top 0.25s ease,
+          width 0.25s ease,
+          height 0.25s ease;
+        pointer-events: none;
+      }
+
+      .field-chip-2d {
+        background: #26637d22 !important;
+        color: #26637d !important;
+      }
+      .field-chip-3d {
+        background: #7d3c9822 !important;
+        color: #7d3c98 !important;
+      }
+
+      .v-theme--siteviewDark .field-chip-2d {
+        color: #6fc3e0 !important;
+        background: #6fc3e022 !important;
+      }
+      .v-theme--siteviewDark .field-chip-3d {
+        color: #c996e6 !important;
+        background: #c996e622 !important;
+      }
+
+      .section-card {
+        border-radius: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <v-app>
+        <v-main
+          class="main-shell"
+          style="background: rgb(var(--v-theme-background))"
+        >
+          <v-container fluid class="shell-container pa-0">
+            <v-stepper
+              v-model="step"
+              class="stepper-card section-card"
+              elevation="3"
+            >
+              <v-stepper-header>
+                <v-stepper-item
+                  :value="1"
+                  title="Site Location"
+                  subtitle="Choose coordinates &amp; radius"
+                  icon="mdi-map-marker-radius"
+                  :complete="step > 1"
+                  editable
+                ></v-stepper-item>
+                <v-divider></v-divider>
+                <v-stepper-item
+                  :value="2"
+                  title="Field Selection"
+                  subtitle="Pick variables to load"
+                  icon="mdi-layers-outline"
+                  :complete="step > 2"
+                  :editable="canProceedStep1"
+                ></v-stepper-item>
+              </v-stepper-header>
+
+              <v-divider></v-divider>
+
+              <v-stepper-window>
+                <!-- ============== STEP 1: LOCATION & RADIUS ============== -->
+                <v-stepper-window-item :value="1">
+                  <div class="step-pane pa-6">
+                    <v-row justify="center">
+                      <v-col cols="12" lg="7" xl="6">
+                        <v-select
+                          v-model="selectedSite"
+                          :items="armSites"
+                          item-title="title"
+                          item-value="value"
+                          label="ARM User Facility"
+                          prepend-inner-icon="mdi-domain"
+                          variant="outlined"
+                          density="comfortable"
+                          clearable
+                          @update:model-value="onSiteSelected"
+                        >
+                          <template v-slot:item="{ props, item }">
+                            <v-list-item
+                              v-bind="props"
+                              :subtitle="formatCoords(item.raw.lat, item.raw.lon)"
+                            ></v-list-item>
+                          </template>
+                        </v-select>
+
+                        <div
+                          class="text-overline text-medium-emphasis mt-2 mb-1"
+                        >
+                          Coordinates
+                        </div>
+                        <v-row dense>
+                          <v-col cols="6">
+                            <v-text-field
+                              v-model.number="latitude"
+                              type="number"
+                              step="0.001"
+                              label="Latitude"
+                              suffix="°N"
+                              variant="outlined"
+                              density="comfortable"
+                              :rules="[rules.lat]"
+                              @update:model-value="onManualEdit"
+                            ></v-text-field>
+                          </v-col>
+                          <v-col cols="6">
+                            <v-text-field
+                              v-model.number="longitude"
+                              type="number"
+                              step="0.001"
+                              label="Longitude"
+                              suffix="°E"
+                              variant="outlined"
+                              density="comfortable"
+                              :rules="[rules.lon]"
+                              @update:model-value="onManualEdit"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+
+                        <div
+                          class="text-overline text-medium-emphasis mt-4 mb-1"
+                        >
+                          Region of Interest
+                        </div>
+                        <v-row dense align="center">
+                          <v-col cols="7">
+                            <v-text-field
+                              v-model.number="radiusValue"
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              label="Radius"
+                              prepend-inner-icon="mdi-radius-outline"
+                              variant="outlined"
+                              density="comfortable"
+                              hide-details
+                              :rules="[rules.positive]"
+                            ></v-text-field>
+                          </v-col>
+                          <v-col cols="5">
+                            <v-btn-toggle
+                              v-model="radiusUnit"
+                              color="primary"
+                              variant="outlined"
+                              divided
+                              mandatory
+                              density="comfortable"
+                              class="w-100"
+                            >
+                              <v-btn value="km" class="flex-grow-1">km</v-btn>
+                              <v-btn value="deg" class="flex-grow-1">deg</v-btn>
+                            </v-btn-toggle>
+                          </v-col>
+                        </v-row>
+
+                        <!-- Schematic coordinate preview -->
+                        <div class="coord-preview mt-4">
+                          <!--<div class="coord-equator"></div>-->
+                          <!--<div class="coord-meridian"></div>-->
+                          <div
+                            class="coord-radius"
+                            :style="{ left: markerX + '%', top: markerY + '%', width: previewRadiusPx + 'px', height: previewRadiusPx + 'px' }"
+                          ></div>
+                          <div
+                            class="coord-marker"
+                            :style="{ left: markerX + '%', top: markerY + '%' }"
+                          ></div>
+                        </div>
+                        <div class="text-caption text-medium-emphasis mt-1">
+                          Schematic preview (equirectangular, not to scale)
+                        </div>
+                      </v-col>
+                    </v-row>
+                  </div>
+                </v-stepper-window-item>
+
+                <!-- ============== STEP 2: FIELD SELECTION ============== -->
+                <v-stepper-window-item :value="2">
+                  <div class="step-pane pa-6">
+                    <v-text-field
+                      v-model="fieldSearch"
+                      placeholder="Search fields (name or description)"
+                      prepend-inner-icon="mdi-magnify"
+                      variant="outlined"
+                      density="comfortable"
+                      clearable
+                      hide-details
+                      class="mb-3"
+                    ></v-text-field>
+
+                    <v-expansion-panels
+                      v-model="openPanels"
+                      multiple
+                      variant="accordion"
+                    >
+                      <v-expansion-panel
+                        v-for="group in filteredGroups"
+                        :key="group.key"
+                      >
+                        <v-expansion-panel-title>
+                          <v-icon
+                            :icon="group.icon"
+                            class="mr-3"
+                            :color="group.color"
+                          ></v-icon>
+                          <span class="font-weight-medium"
+                            >{{ group.label }}</span
+                          >
+                          <v-chip
+                            size="small"
+                            variant="flat"
+                            :class="group.key === 'surface' ? 'field-chip-2d' : 'field-chip-3d'"
+                            class="ml-3"
+                            >{{ group.key === 'surface' ? '2D' : '3D' }}</v-chip
+                          >
+                          <v-spacer></v-spacer>
+                          <span class="text-caption text-medium-emphasis mr-4">
+                            {{ countSelected(group) }} / {{ group.fields.length
+                            }}
+                          </span>
+                        </v-expansion-panel-title>
+
+                        <v-expansion-panel-text>
+                          <div class="d-flex ga-2 mb-2">
+                            <v-btn
+                              size="small"
+                              variant="text"
+                              @click="setGroupSelection(group, true)"
+                              >Select all</v-btn
+                            >
+                            <v-btn
+                              size="small"
+                              variant="text"
+                              @click="setGroupSelection(group, false)"
+                              >Clear</v-btn
+                            >
+                          </div>
+                          <v-row dense>
+                            <v-col
+                              v-for="field in group.fields"
+                              :key="field.name"
+                              cols="12"
+                              sm="6"
+                              md="4"
+                              xl="3"
+                              v-show="matchesSearch(field)"
+                            >
+                              <v-checkbox
+                                v-model="field.selected"
+                                density="compact"
+                                hide-details
+                                @update:model-value="onFieldToggle"
+                              >
+                                <template v-slot:label>
+                                  <div>
+                                    <div class="font-weight-medium">
+                                      {{ field.name }}
+                                      <span
+                                        class="text-caption text-medium-emphasis"
+                                        >({{ field.units }})</span
+                                      >
+                                    </div>
+                                    <div
+                                      class="text-caption text-medium-emphasis"
+                                      style="line-height: 1.2"
+                                    >
+                                      {{ field.description }}
+                                    </div>
+                                  </div>
+                                </template>
+                              </v-checkbox>
+                            </v-col>
+                          </v-row>
+                        </v-expansion-panel-text>
+                      </v-expansion-panel>
+                    </v-expansion-panels>
+                  </div>
+                </v-stepper-window-item>
+              </v-stepper-window>
+
+              <v-divider></v-divider>
+
+              <!-- ============== ACTIONS ============== -->
+              <div class="actions-bar pa-4 d-flex flex-wrap align-center ga-4">
+                <v-btn variant="text" :disabled="step === 1" @click="step = 1">
+                  <v-icon icon="mdi-arrow-left" class="mr-2"></v-icon>
+                  Back
+                </v-btn>
+                <v-btn variant="text" @click="toggleTheme"> Theme </v-btn>
+
+                <v-spacer></v-spacer>
+
+                <div
+                  class="d-flex align-center ga-2 text-body-2 text-medium-emphasis"
+                >
+                  <v-icon
+                    icon="mdi-map-marker"
+                    color="primary"
+                    size="18"
+                  ></v-icon>
+                  <span
+                    >{{ formatCoords(latitude, longitude) }} · {{ radiusValue }}
+                    {{ radiusUnit === 'km' ? 'km' : 'deg' }} radius</span
+                  >
+                </div>
+                <div
+                  class="d-flex align-center ga-2 text-body-2 text-medium-emphasis"
+                >
+                  <v-icon
+                    icon="mdi-layers-outline"
+                    color="primary"
+                    size="18"
+                  ></v-icon>
+                  <span
+                    >{{ selectedFieldCount }} field{{ selectedFieldCount === 1 ?
+                    '' : 's' }} selected</span
+                  >
+                </div>
+
+                <template v-if="step === 1">
+                  <v-btn
+                    class="text-none"
+                    color="primary"
+                    size="large"
+                    :disabled="!canProceedStep1"
+                    @click="step = 2"
+                  >
+                    Next: Select Fields
+                    <v-icon icon="mdi-arrow-right" class="ml-2"></v-icon>
+                  </v-btn>
+                </template>
+                <template v-else>
+                  <v-btn variant="text" @click="showJson = true">
+                    <v-icon icon="mdi-code-json" class="mr-1"></v-icon>
+                    View request
+                  </v-btn>
+                  <v-btn
+                    class="text-none"
+                    color="primary"
+                    size="large"
+                    :disabled="!canContinue"
+                    @click="continueNext"
+                  >
+                    Continue
+                    <v-icon icon="mdi-arrow-right" class="ml-2"></v-icon>
+                  </v-btn>
+                </template>
+              </div>
+            </v-stepper>
+          </v-container>
+        </v-main>
+
+        <v-dialog v-model="showJson" max-width="560">
+          <v-card class="section-card">
+            <v-card-title class="d-flex align-center">
+              <v-icon icon="mdi-code-json" class="mr-2"></v-icon>
+              Selection payload
+              <v-spacer></v-spacer>
+              <v-btn
+                icon="mdi-close"
+                variant="text"
+                size="small"
+                @click="showJson = false"
+              ></v-btn>
+            </v-card-title>
+            <v-card-text>
+              <pre class="text-caption" style="white-space: pre-wrap">
+{{ requestJson }}</pre
+              >
+            </v-card-text>
+          </v-card>
+        </v-dialog>
+
+        <v-snackbar v-model="snackbar" timeout="2500" color="success">
+          Configuration ready — {{ selectedFieldCount }} field(s) over a {{
+          radiusValue }}{{ radiusUnit === 'km' ? 'km' : '°' }} region.
+        </v-snackbar>
+      </v-app>
+    </div>
+
+    <script src="https://unpkg.com/vue@3.4.31/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.7.4/dist/vuetify.min.js"></script>
+
+    <script>
+      const { createApp } = Vue;
+      const { createVuetify } = Vuetify;
+
+      // Mirrors e3sm_siteview.sites.ARM_SITES_COORDINATES / ARM_SITES
+      const ARM_SITES = [
+        {
+          title: "Southern Great Plains (SGP)",
+          value: "SGP",
+          lat: 36.607,
+          lon: 97.488,
+        },
+        {
+          title: "North Slope of Alaska (NSA)",
+          value: "NSA",
+          lat: 71.323,
+          lon: 156.609,
+        },
+        {
+          title: "Eastern North Atlantic (ENA)",
+          value: "ENA",
+          lat: 39.091,
+          lon: 28.026,
+        },
+      ];
+
+      const SURFACE_FIELDS = [
+        { name: "TS", units: "K", description: "Surface temperature" },
+        { name: "PS", units: "Pa", description: "Surface pressure" },
+        { name: "PSL", units: "Pa", description: "Sea level pressure" },
+        {
+          name: "TREFHT",
+          units: "K",
+          description: "Reference height (2m) temperature",
+        },
+        {
+          name: "QREFHT",
+          units: "kg/kg",
+          description: "Reference height humidity",
+        },
+        { name: "U10", units: "m/s", description: "10m wind speed" },
+        {
+          name: "PRECT",
+          units: "m/s",
+          description: "Total precipitation rate",
+        },
+        {
+          name: "PRECC",
+          units: "m/s",
+          description: "Convective precipitation rate",
+        },
+        {
+          name: "TMQ",
+          units: "kg/m²",
+          description: "Total precipitable water",
+        },
+        {
+          name: "CLDTOT",
+          units: "fraction",
+          description: "Total cloud fraction",
+        },
+        {
+          name: "FSNS",
+          units: "W/m²",
+          description: "Net solar flux at surface",
+        },
+        {
+          name: "FLNS",
+          units: "W/m²",
+          description: "Net longwave flux at surface",
+        },
+        {
+          name: "LHFLX",
+          units: "W/m²",
+          description: "Surface latent heat flux",
+        },
+        {
+          name: "SHFLX",
+          units: "W/m²",
+          description: "Surface sensible heat flux",
+        },
+        {
+          name: "TAUX",
+          units: "N/m²",
+          description: "Zonal surface wind stress",
+        },
+        {
+          name: "TAUY",
+          units: "N/m²",
+          description: "Meridional surface wind stress",
+        },
+      ].map((f) => ({ ...f, selected: false }));
+
+      const VOLUME_FIELDS = [
+        {
+          name: "T",
+          units: "K",
+          description: "Air temperature on model levels",
+        },
+        { name: "U", units: "m/s", description: "Zonal wind on model levels" },
+        {
+          name: "V",
+          units: "m/s",
+          description: "Meridional wind on model levels",
+        },
+        {
+          name: "Q",
+          units: "kg/kg",
+          description: "Specific humidity on model levels",
+        },
+        {
+          name: "RELHUM",
+          units: "%",
+          description: "Relative humidity on model levels",
+        },
+        {
+          name: "CLOUD",
+          units: "fraction",
+          description: "Cloud fraction on model levels",
+        },
+        {
+          name: "CLDLIQ",
+          units: "kg/kg",
+          description: "Cloud liquid water mixing ratio",
+        },
+        {
+          name: "CLDICE",
+          units: "kg/kg",
+          description: "Cloud ice mixing ratio",
+        },
+        {
+          name: "OMEGA",
+          units: "Pa/s",
+          description: "Vertical pressure velocity",
+        },
+        { name: "Z3", units: "m", description: "Geopotential height" },
+      ].map((f) => ({ ...f, selected: false }));
+
+      const app = createApp({
+        data() {
+          return {
+            step: 1,
+            armSites: ARM_SITES,
+            selectedSite: null,
+            latitude: ARM_SITES[0].lat,
+            longitude: ARM_SITES[0].lon,
+
+            radiusValue: 100,
+            radiusUnit: "km",
+
+            fieldSearch: "",
+            openPanels: [0, 1],
+            fieldGroups: [
+              {
+                key: "surface",
+                label: "Surface Fields",
+                icon: "mdi-layers-outline",
+                color: "primary",
+                fields: SURFACE_FIELDS,
+              },
+              {
+                key: "volume",
+                label: "Atmospheric Fields (3D)",
+                icon: "mdi-cube-outline",
+                color: "secondary",
+                fields: VOLUME_FIELDS,
+              },
+            ],
+
+            showJson: false,
+            snackbar: false,
+            isDark: true,
+
+            rules: {
+              lat: (v) =>
+                (v >= -90 && v <= 90) || "Latitude must be between -90 and 90",
+              lon: (v) =>
+                (v >= -180 && v <= 180) ||
+                "Longitude must be between -180 and 180",
+              positive: (v) => v > 0 || "Radius must be greater than 0",
+            },
+          };
+        },
+        computed: {
+          markerX() {
+            return ((this.longitude + 180) / 360) * 100;
+          },
+          markerY() {
+            return ((90 - this.latitude) / 180) * 100;
+          },
+          previewRadiusPx() {
+            const base =
+              this.radiusUnit === "km"
+                ? this.radiusValue / 40
+                : this.radiusValue * 6;
+            return Math.min(Math.max(base, 8), 180);
+          },
+          filteredGroups() {
+            return this.fieldGroups;
+          },
+          selectedFieldCount() {
+            return this.fieldGroups.reduce(
+              (total, group) =>
+                total + group.fields.filter((f) => f.selected).length,
+              0,
+            );
+          },
+          canProceedStep1() {
+            return (
+              this.latitude >= -90 &&
+              this.latitude <= 90 &&
+              this.longitude >= -180 &&
+              this.longitude <= 180 &&
+              this.radiusValue > 0
+            );
+          },
+          canContinue() {
+            return this.canProceedStep1 && this.selectedFieldCount > 0;
+          },
+          requestJson() {
+            const payload = {
+              site: this.selectedSite,
+              latitude: this.latitude,
+              longitude: this.longitude,
+              radius: { value: this.radiusValue, unit: this.radiusUnit },
+              fields: this.fieldGroups.flatMap((group) =>
+                group.fields
+                  .filter((f) => f.selected)
+                  .map((f) => ({
+                    name: f.name,
+                    kind: group.key === "surface" ? "2D" : "3D",
+                  })),
+              ),
+            };
+            return JSON.stringify(payload, null, 2);
+          },
+        },
+        methods: {
+          onSiteSelected(value) {
+            const site = this.armSites.find((s) => s.value === value);
+            if (site) {
+              this.latitude = site.lat;
+              this.longitude = site.lon;
+            }
+          },
+          onManualEdit() {
+            this.selectedSite = null;
+          },
+          formatCoords(lat, lon) {
+            if (
+              lat === null ||
+              lon === null ||
+              lat === undefined ||
+              lon === undefined
+            )
+              return "";
+            const ns = lat >= 0 ? "N" : "S";
+            const ew = lon >= 0 ? "E" : "W";
+            return `${Math.abs(lat).toFixed(3)}°${ns}, ${Math.abs(lon).toFixed(3)}°${ew}`;
+          },
+          matchesSearch(field) {
+            if (!this.fieldSearch) return true;
+            const q = this.fieldSearch.toLowerCase();
+            return (
+              field.name.toLowerCase().includes(q) ||
+              field.description.toLowerCase().includes(q)
+            );
+          },
+          countSelected(group) {
+            return group.fields.filter((f) => f.selected).length;
+          },
+          setGroupSelection(group, value) {
+            group.fields.forEach((f) => {
+              if (this.matchesSearch(f)) f.selected = value;
+            });
+          },
+          onFieldToggle() {},
+          toggleTheme() {
+            this.isDark = !this.isDark;
+            this.$vuetify.theme.global.name = this.isDark
+              ? "siteviewDark"
+              : "siteviewLight";
+          },
+          continueNext() {
+            this.snackbar = true;
+            console.log(
+              "Site selection payload:",
+              JSON.parse(this.requestJson),
+            );
+          },
+        },
+      });
+
+      const vuetify = createVuetify({
+        theme: {
+          defaultTheme: "siteviewLight",
+          themes: {
+            siteviewLight: {
+              dark: false,
+              colors: {
+                primary: "#1f6f8b",
+                secondary: "#7d3c98",
+                background: "#f4f7f9",
+              },
+            },
+            siteviewDark: {
+              dark: true,
+              colors: {
+                primary: "#6fc3e0",
+                secondary: "#c996e6",
+                background: "#0f1a20",
+              },
+            },
+          },
+        },
+      });
+
+      app.use(vuetify).mount("#app");
+    </script>
+  </body>
+</html>

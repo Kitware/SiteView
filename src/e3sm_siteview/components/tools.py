@@ -52,7 +52,7 @@ class AppLogo(v3.VTooltip):
 # Clickable tools
 # -----------------------------------------------------------------------------
 class ActionButton(v3.VTooltip):
-    def __init__(self, compact, title, icon, click, keybinding=None):
+    def __init__(self, title, icon, click, compact="compact_drawer", keybinding=None):
         super().__init__(text=title, disabled=(f"!{compact}",))
         with self:
             with v3.Template(v_slot_activator="{ props }"):
