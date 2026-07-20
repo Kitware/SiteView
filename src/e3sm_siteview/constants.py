@@ -593,19 +593,19 @@ SITES = [
         "title": "Southern Great Plains (SGP)",
         "value": "SGP",
         "lat": 36.607,
-        "lon": 97.488,
+        "lon": -97.488,
     },
     {
         "title": "North Slope of Alaska (NSA)",
         "value": "NSA",
         "lat": 71.323,
-        "lon": 156.609,
+        "lon": -156.609,
     },
     {
         "title": "Eastern North Atlantic (ENA)",
         "value": "ENA",
         "lat": 39.091,
-        "lon": 28.026,
+        "lon": -28.026,
     },
 ]
 
