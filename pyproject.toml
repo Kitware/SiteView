@@ -101,6 +101,7 @@ isort.required-imports = []
 "tests/**" = ["T20", "PLC0415"]
 "noxfile.py" = ["T20"]
 "src/**" = ["SIM117"]
+"examples/**" = ["T20", "INP001"]
 
 [tool.semantic_release]
 version_toml = [
