@@ -10,6 +10,9 @@ dependencies = [
     "trame-vuetify",
     "trame-rca",
     "trame-dockview",
+    "vtk>=9.3",
+    "numpy",
+    "netCDF4>=1.6.5",
 ]
 requires-python = ">=3.12"
 readme = "README.rst"
@@ -59,6 +62,9 @@ packages = [
 ]
 
 [tool.ruff]
+# Vendored copy of QuickView's EAM VTK algorithms — keep upstream style, don't
+# relint. Reconcile into a shared package later (see io/ module docstrings).
+extend-exclude = ["src/e3sm_siteview/io"]
 
 [tool.ruff.lint]
 extend-select = [
@@ -95,6 +101,7 @@ isort.required-imports = []
 "tests/**" = ["T20", "PLC0415"]
 "noxfile.py" = ["T20"]
 "src/**" = ["SIM117"]
+"examples/**" = ["T20", "INP001"]
 
 [tool.semantic_release]
 version_toml = [
