@@ -1,10 +1,10 @@
 def configure_and_parse(parser):
     parser.add_argument(
-        "-cf",
+        "--cf",
         help="the nc file with connnectivity information",
     )
     parser.add_argument(
-        "-df",
+        "--df",
         nargs="+",
         help="the nc file with data/variables",
     )

@@ -7,7 +7,6 @@ window.trame.utils.e3sm = {
     return `${Math.abs(lat).toFixed(3)}°${ns}, ${Math.abs(lon).toFixed(3)}°${ew}`;
   },
   match(field, query) {
-    // FIXME enable filtering
-    return true;
+    return field.name.toLowerCase()?.includes(query?.toLowerCase() || "");
   },
 };

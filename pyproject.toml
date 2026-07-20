@@ -6,9 +6,10 @@ authors = [
     {name = "Kitware Inc."},
 ]
 dependencies = [
-    "trame>=3.13.2",
+    "trame >=3.13.2",
     "trame-vuetify",
-    "trame-rca[turbo]>=2.6",
+    "trame-rca[turbo] >=2.6",
+    "trame-vtk",
     "trame-dockview",
     "trame-dataclass >=2.1.3",
     "pyproj>=3.6.1",
