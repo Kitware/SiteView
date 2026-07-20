@@ -1,0 +1,126 @@
+.main-shell {
+  height: 100%;
+  overflow: hidden;
+}
+.shell-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.stepper-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.stepper-card > .v-stepper-header {
+  flex: 0 0 auto;
+}
+.stepper-card .v-stepper-window {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin: 0 !important;
+  overflow: hidden;
+}
+.stepper-card .v-window__container {
+  height: 100% !important;
+}
+.stepper-card .v-window-item {
+  height: 100%;
+}
+.step-pane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-pane > .flex-fill {
+  max-height: calc(100% - 72px);
+  overflow: auto;
+}
+
+.actions-bar {
+  flex: 0 0 auto;
+}
+
+.coord-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: url("./Equirectangular-projection.jpg");
+  background-size: 100% 100%;
+  background-position: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.coord-equator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 2px);
+  border-top: 4px dashed rgba(255, 0, 0, 0.5);
+}
+
+.coord-meridian {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 1px);
+  border-left: 4px dashed rgba(255, 0, 0, 0.5);
+}
+
+.coord-marker {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: #ff7043;
+  box-shadow:
+    0 0 0 4px rgba(255, 112, 67, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+  transition:
+    left 0.25s ease,
+    top 0.25s ease;
+}
+
+.coord-radius {
+  position: absolute;
+  border: 2px dashed rgba(255, 213, 79, 0.85);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition:
+    left 0.25s ease,
+    top 0.25s ease,
+    width 0.25s ease,
+    height 0.25s ease;
+  pointer-events: none;
+}
+
+.field-chip-2d {
+  background: #26637d22 !important;
+  color: #26637d !important;
+}
+.field-chip-3d {
+  background: #7d3c9822 !important;
+  color: #7d3c98 !important;
+}
+
+.v-theme--siteviewDark .field-chip-2d {
+  color: #6fc3e0 !important;
+  background: #6fc3e022 !important;
+}
+.v-theme--siteviewDark .field-chip-3d {
+  color: #c996e6 !important;
+  background: #c996e622 !important;
+}
+
+.section-card {
+  border-radius: 16px;
+}

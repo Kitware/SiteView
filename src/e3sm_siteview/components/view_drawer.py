@@ -26,20 +26,30 @@ class View3DTools(v3.VNavigationDrawer):
                     ),
                 ):
                     tools.AppLogo()
+                    tools.ActionButton(
+                        title="Select site",
+                        icon="mdi-target",
+                        click=(self.activate_page, "['site']"),
+                    )
+                    tools.ActionButton(
+                        title="Load fields",
+                        icon="mdi-list-status",
+                        click=(self.activate_page, "['fields']"),
+                    )
+
+                    v3.VDivider(classes="my-1")  # ---------------------
                     tools.ResetCamera(click=reset_camera)
 
-                    v3.VDivider(classes="my-1")  # ---------------------
-
-                    tools.StateImportExport()
-                    tools.OpenFile()
+                    # tools.StateImportExport()
+                    # tools.OpenFile()
 
                     v3.VDivider(classes="my-1")  # ---------------------
 
-                    tools.FieldSelection()
-                    tools.DataSelection()
+                    # tools.FieldSelection()
+                    # tools.DataSelection()
                     tools.Animation()
 
-                    v3.VDivider(classes="my-1")  # ---------------------
+                    # v3.VDivider(classes="my-1")  # ---------------------
 
                     tools.LayoutManagement()
                     tools.MapProjection()
@@ -63,3 +73,6 @@ class View3DTools(v3.VNavigationDrawer):
                     f"{app_version}",
                     classes="text-center text-caption d-block text-wrap",
                 )
+
+    def activate_page(self, name):
+        getattr(self.ctx.pages, name).activate()
