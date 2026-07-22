@@ -1,7 +1,9 @@
 from trame.app import TrameApp
 from trame.ui.vuetify3 import VAppLayout
-from trame.widgets import client, dockview, paraview
+from trame.widgets import client, colormaps, dockview, plotly, vtk
 from trame.widgets import vuetify3 as v3
+
+from e3sm_siteview.components import footer
 
 
 class VisualizationPage(TrameApp):
@@ -9,7 +11,9 @@ class VisualizationPage(TrameApp):
         super().__init__(server)
 
         # Deferred UI initialization
-        paraview.initialize(self.server)
+        vtk.initialize(self.server)
+        colormaps.initialize(self.server)
+        plotly.initialize(self.server)
 
         self._build_ui()
 
@@ -18,78 +22,15 @@ class VisualizationPage(TrameApp):
             client.ClientTriggers(mounted=self._load_layout)
             with v3.VLayout():
                 with v3.VMain():
-                    dockview.DockView(ctx_name="views_container")
-                with v3.VFooter(app=True):
-                    with self.ctx.setup.provide_as("controls"):
-                        with v3.VBtnToggle(
-                            v_model="controls.active_viz",
-                            color="primary",
-                            multiple=True,
-                            density="comfortable",
-                            border=True,
-                            divided=True,
-                        ):
-                            v3.VBtn(icon="mdi-weather-cloudy", value="cloud")
-                            v3.VBtn(icon="mdi-layers-outline", value="surface")
-                            v3.VBtn(icon="mdi-cube-outline", value="volume")
-                            v3.VBtn(icon="mdi-flip-vertical", value="slice")
-                            v3.VBtn(icon="mdi-magnify-scan", value="find-data")
-                            v3.VBtn(icon="mdi-sort", value="crop-column")
-                            v3.VBtn(icon="mdi-map-marker-plus", value="probes")
-
-                        v3.VDivider(vertical=True, classes="mx-2")
-
-                        with v3.VBtnToggle(
-                            density="comfortable",
-                            border=True,
-                            divided=True,
-                        ):
-                            v3.VBtn(
-                                icon="mdi-step-backward-2",
-                                click="controls.time_index = 0",
-                            )
-                            v3.VBtn(
-                                icon="mdi-step-backward",
-                                click="controls.time_index > 0 && controls.time_index--",
-                            )
-                            v3.VBtn(
-                                icon="mdi-stop",
-                                v_if="controls.time_animating",
-                                click="controls.time_animating = false",
-                            )
-                            v3.VBtn(
-                                icon="mdi-play",
-                                v_else=True,
-                                click="controls.time_animating = true",
-                            )
-                            v3.VBtn(
-                                icon="mdi-step-forward",
-                                click="controls.time_index < controls.time_index_max && controls.time_index++",
-                            )
-                            v3.VBtn(
-                                icon="mdi-step-forward-2",
-                                click="controls.time_index = controls.time_index_max",
-                            )
-                        v3.VLabel(
-                            "{{controls.time_value}}",
-                            style="width: 200px;",
-                            classes="mx-2",
-                        )
-                        v3.VSlider(
-                            v_model="controls.time_index",
-                            min=0,
-                            max=("controls.time_index_max",),
-                            step=1,
-                            density="compact",
-                            hide_details=True,
-                        )
+                    dockview.DockView(ctx_name="views_container", theme="Light")
+                footer.GeneralControls()
 
     def activate(self):
         self._build_ui()
 
     def _load_layout(self):
         for viewer in self.ctx.viewers.values():
-            viewer.add_analysis("viz")
+            viewer.add_analysis("viz", "time")
 
 
 def main():

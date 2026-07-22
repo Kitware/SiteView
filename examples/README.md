@@ -22,10 +22,10 @@ python examples/01_mesh_reader.py
 
 ## Examples
 
-| script                            | shows                                                         |
+| script                            | shows                                                        |
 | --------------------------------- | ------------------------------------------------------------ |
-| `01_mesh_reader.py`               | `EAMMeshSource`: connectivity → 2D column mesh (vtkPolyData)  |
-| `02_column_reader.py`             | `EAMColumnSource`: data → per-column profiles (vtkTable)      |
-| `03_column_volume.py`             | both readers + `EAMColumnVolume` → 3D hexahedral column grid  |
-| `04_select_columns_in_radius.py`  | pick columns within a radius on the mesh, then load them      |
-| `05_time_series_single_column.py` | iterate time for one column via the Slicing JSON              |
+| `01_mesh_reader.py`               | `EAMMeshSource`: connectivity → 2D column mesh (vtkPolyData) |
+| `02_column_reader.py`             | `EAMColumnSource`: data → per-column profiles (vtkTable)     |
+| `03_column_volume.py`             | both readers + `EAMColumnVolume` → 3D hexahedral column grid |
+| `04_select_columns_in_radius.py`  | pick columns within a radius on the mesh, then load them     |
+| `05_time_series_single_column.py` | iterate time for one column via the Slicing JSON             |

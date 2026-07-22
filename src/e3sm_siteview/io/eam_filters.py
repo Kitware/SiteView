@@ -266,4 +266,3 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
             )
 
         return 1
-

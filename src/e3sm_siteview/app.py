@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from trame.app import TrameApp
 
 from e3sm_siteview import pages
+from e3sm_siteview.assets import ASSETS
 from e3sm_siteview.viewer import create_viewers
 
 
@@ -12,6 +13,7 @@ class E3smSiteView(TrameApp):
 
         # Tab title
         self.state.trame__title = "E3SM Site View"
+        self.state.trame__favicon = ASSETS.icon
 
         # --hot-reload arg optional logic
         if self.server.hot_reload:

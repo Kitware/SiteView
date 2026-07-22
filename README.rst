@@ -21,7 +21,7 @@ Run the application
 
 .. code-block:: console
 
-    e3sm-site-view
+    e3sm-site-view --cf ../data/connectivity.nc --df ../data/file_1.nc [...] ../data/file_n.nc
 
 Development setup
 ----------------------------------------

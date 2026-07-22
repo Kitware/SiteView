@@ -1,7 +1,11 @@
 import asyncio
+import json
 
-from paraview import simple
 from trame.app import asynchronous, dataclass
+from vtkmodules.util import numpy_support
+from vtkmodules.vtkCommonCore import vtkIdList
+from vtkmodules.vtkCommonDataModel import vtkStaticPointLocator
+from vtkmodules.vtkFiltersCore import vtkCellCenters
 
 from e3sm_siteview.constants import FIELDS_METADATA
 
@@ -43,9 +47,7 @@ class ColorByControls(dataclass.StateDataModel):
 class SliceControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
     orientation = dataclass.Sync(int, 0)
-    altitude = dataclass.Sync(float, 0)
-    altitude_min = dataclass.Sync(float, 0)
-    altitude_max = dataclass.Sync(float, 100)
+    altitude = dataclass.Sync(int, 0)
 
 
 class FindDataControls(dataclass.StateDataModel):
@@ -55,27 +57,54 @@ class FindDataControls(dataclass.StateDataModel):
 
 class ColumnControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
-    altitude_range = dataclass.Sync(tuple[float, float], (0, 100))
+    altitude_range = dataclass.Sync(tuple[int, int], (0, 100))
+    col_max_idx = dataclass.Sync(int, 0)
+
+
+class VisualizationAnalysis(dataclass.StateDataModel):
+    panels = dataclass.Sync(dict[str, str], dict)
+
+
+class DrappedChart(dataclass.StateDataModel):
+    color_by = dataclass.Sync(str)
+    column = dataclass.Sync(int, 0)
 
 
 class GlobalParameters(dataclass.StateDataModel):
+    # Data handling
     readers = dataclass.ServerOnly(set, set)
     variables_2d = dataclass.Sync(list[Variable], list, has_dataclass=True)
     variables_3d = dataclass.Sync(list[Variable], list, has_dataclass=True)
-    time_values = dataclass.Sync(list[float], list)
+    # Time
+    time_values = dataclass.Sync(list[int], list)
     time_index = dataclass.Sync(int, 0)
     time_index_max = dataclass.Sync(int, 0)
-    time_value = dataclass.Sync(float, 0.0)
-    # Visualization
-    active_viz = dataclass.Sync(list[str], ["surface"])
+    time_value = dataclass.Sync(int, 0.0)
     time_animating = dataclass.Sync(bool, False)
-    # Viz controls
+    # Columns selection
+    radius_deg = dataclass.Sync(float, 1.0)
+    center = dataclass.Sync(tuple[float, float, float], (0, 0, 0))
+    col_ids_str = dataclass.Sync(str, "[]")
+    n_cols = dataclass.Sync(int, 0)
+    # 3D Viz controls
+    active_viz = dataclass.Sync(list[str], ["volume"])
     cloud = dataclass.Sync(CloudControls, has_dataclass=True)
     surface = dataclass.Sync(ColorByControls, has_dataclass=True)
     volume = dataclass.Sync(ColorByControls, has_dataclass=True)
     slice = dataclass.Sync(SliceControls, has_dataclass=True)
     find_data = dataclass.Sync(FindDataControls, has_dataclass=True)
     column = dataclass.Sync(ColumnControls, has_dataclass=True)
+    # Time Chart controls
+    surface_chart = dataclass.Sync(DrappedChart, has_dataclass=True)
+    # Analysis
+    active_analysis = dataclass.Sync(list[str], ["viz"])
+    available_analysis = dataclass.Sync(
+        list,
+        [
+            ("viz", "mdi-earth"),
+            ("time", "mdi-chart-line"),
+        ],
+    )
 
     def __init__(self, server, **defaults):
         super().__init__(server, **defaults)
@@ -85,13 +114,27 @@ class GlobalParameters(dataclass.StateDataModel):
         self.slice = SliceControls(server)
         self.find_data = FindDataControls(server)
         self.column = ColumnControls(server)
+        self.surface_chart = DrappedChart(server)
 
         self.ctrl.load_fields = self.load_fields
-        self.animation_scene = simple.GetAnimationScene()
+
+        # VTK pipeline to compute col_ids
+        centers = vtkCellCenters()
+        centers.SetInputData(self.ctx.mesh)
+        centers.Update()
+
+        self.col_ids = vtkIdList()
+        self.locator = vtkStaticPointLocator()
+        self.locator.SetDataSet(centers.GetOutput())
+        self.locator.BuildLocator()
 
     @property
     def ctrl(self):
         return self.server.controller
+
+    @property
+    def ctx(self):
+        return self.server.context
 
     @dataclass.watch("time_values", sync=True)
     def _on_time_values(self, values):
@@ -101,13 +144,25 @@ class GlobalParameters(dataclass.StateDataModel):
     @dataclass.watch("time_index", sync=True)
     def _on_time_index(self, time_index):
         self.time_value = self.time_values[time_index]
-        self.animation_scene.AnimationTime = self.time_value
-        self.ctrl.render()
 
     @dataclass.watch("time_animating")
     def _on_animation(self, time_animating):
         if time_animating:
             asynchronous.create_task(self._animate())
+
+    @dataclass.watch("radius_deg", "center")
+    def apply_region(self, radius_deg, center):
+        self.locator.FindPointsWithinRadius(radius_deg, center, self.col_ids)
+        self.col_ids.Sort()
+        col_id = numpy_support.vtk_to_numpy(
+            self.ctx.mesh.GetCellData().GetArray("col_id")
+        )
+        selected_ids = [
+            int(col_id[self.col_ids.GetId(i)])
+            for i in range(self.col_ids.GetNumberOfIds())
+        ]
+        self.col_ids_str = json.dumps(selected_ids)
+        self.n_cols = len(selected_ids)
 
     async def _animate(self):
         while self.time_animating:
@@ -116,26 +171,41 @@ class GlobalParameters(dataclass.StateDataModel):
                 self.time_index += 1
             else:
                 self.time_index = 0
-            self.ctrl.render()
 
-    def register_reader(self, reader):
+    def register_data_reader(self, reader):
         if len(self.readers) == 0:
-            reader.UpdatePipelineInformation()
-            self.time_values = [float(t) for t in reader.TimestepValues]
-            self.variables_2d = [
-                Variable(self.server, name=str(n))
-                for n in reader.SurfaceVariables.Available
+            selection = reader.GetProfileVariables()
+            names = [
+                selection.GetArrayName(i) for i in range(selection.GetNumberOfArrays())
             ]
-            self.variables_3d = [
-                Variable(self.server, name=str(n))
-                for n in reader.MiddleLayerVariables.Available
-            ]
+            # HOW do I split 2d/3d arrays?
+            self.variables_3d = [Variable(self.server, name=str(n)) for n in names]
+            tdim = reader.GetDimensions().get("time")
+            n_time = tdim.size if tdim is not None else 1
+            self.time_values = list(range(n_time))
 
         self.readers.add(reader)
 
     def load_fields(self):
         for reader in self.readers:
-            reader.SurfaceVariables = [f.name for f in self.variables_2d if f.selected]
-            reader.MiddleLayerVariables = [
-                f.name for f in self.variables_3d if f.selected
-            ]
+            array_selection = reader.GetProfileVariables()
+            array_selection.DisableAllArrays()
+            for name in (f.name for f in self.variables_2d if f.selected):
+                # print(f"+(2d) {name}")
+                array_selection.EnableArray(name)
+            for name in (f.name for f in self.variables_3d if f.selected):
+                # print(f"+(3d) {name}")
+                array_selection.EnableArray(name)
+
+    @dataclass.watch("time_value", sync=True)
+    def update_reader_time(self, time_value):
+        slice_desc = json.dumps({"time": time_value})
+        for reader in self.readers:
+            reader.SetSlicing(slice_desc)
+        self.ctrl.update_color_range()
+        self.ctrl.render()
+
+    @dataclass.watch("col_ids_str")
+    def update_reader_col_ids(self, col_ids_str):
+        for reader in self.readers:
+            reader.SetColumnIds(col_ids_str)

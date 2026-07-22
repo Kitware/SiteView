@@ -379,6 +379,9 @@ class EAMColumnSource(VTKPythonAlgorithmBase):
             self._populate_variable_metadata()
             self.Modified()
 
+    def GetDataFileName(self):
+        return self._DataFileName
+
     def SetColumnIds(self, id_str):
         try:
             ids = json.loads(id_str) if id_str and id_str.strip() else []
@@ -671,4 +674,3 @@ class EAMMeshSource(VTKPythonAlgorithmBase):
 
         output.ShallowCopy(self._cached_output)
         return 1
-
