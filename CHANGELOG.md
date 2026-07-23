@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.2 (2026-07-23)
+
+### Bug Fixes
+
+- **chart**: Add cell time chart
+  ([`84e1670`](https://github.com/Kitware/SiteView/commit/84e16703a1d9c4b0bdc69368a34cc18f931a7c1e))
+
+
 ## v1.0.1 (2026-07-23)
 
 ### Bug Fixes

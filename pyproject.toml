@@ -1,6 +1,6 @@
 [project]
 name = "e3sm-siteview"
-version = "1.0.1"
+version = "1.0.2"
 description = "E3SM Column Explorer"
 authors = [
     {name = "Kitware Inc."},
