@@ -15,13 +15,13 @@ Install the application/library
 
 .. code-block:: console
 
-    pip install e3sm-site-view
+    pip install e3sm-siteview
 
 Run the application
 
 .. code-block:: console
 
-    e3sm-site-view --cf ../data/connectivity.nc --df ../data/file_1.nc [...] ../data/file_n.nc
+    e3sm-siteview --cf ../data/connectivity.nc --df ../data/file_1.nc [...] ../data/file_n.nc
 
 Development setup
 ----------------------------------------

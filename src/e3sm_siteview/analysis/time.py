@@ -57,6 +57,9 @@ class TimeCharts(TrameComponent):
         col_id = self.ctx.setup.surface_chart.column
         altitude_range = self.ctx.setup.column.altitude_range
 
+        if field is None:
+            return
+
         col = self.single_column_reader
         col.SetColumnIds(json.dumps([col_id]))
         select_arrays = col.GetProfileVariables()
@@ -70,9 +73,8 @@ class TimeCharts(TrameComponent):
             col.SetSlicing(json.dumps({"time": t}))
             col.Update()
             table = col.GetOutputDataObject(0)
-            profile = numpy_support.vtk_to_numpy(table.GetColumnByName(field))[
-                0
-            ]  # (n_lev,)
+            array = table.GetColumnByName(field)
+            profile = numpy_support.vtk_to_numpy(array)[0]  # (n_lev,)
             series.append(profile[altitude_range[0] : altitude_range[1]])
 
             if levels is None:
@@ -132,7 +134,6 @@ class TimeCharts(TrameComponent):
                 ):
                     v3.VIcon("mdi-timeline-clock-outline")
                     v3.VSelect(
-                        prepend_inner_icon="mdi-format-color-fill",
                         v_model="global.surface_chart.color_by",
                         items=(
                             "global.variables_3d.filter(v => v.selected).map(v => v.name)",
