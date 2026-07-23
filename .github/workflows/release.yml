@@ -33,7 +33,7 @@ jobs:
 
       - name: Run help command
         run: |
-          e3sm_siteview --help
+          e3sm-siteview --help
         shell: bash -l {0}
 
       - name: Nox
