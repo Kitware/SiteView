@@ -11,10 +11,10 @@ from vtkmodules.util import numpy_support
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
 from e3sm_siteview.io import EAMColumnSource
 
-NAME = "time"
+NAME = "columnHeatMap"
 
 
-class TimeCharts(TrameComponent):
+class ColumnHeatMap(TrameComponent):
     def __init__(self, server, column_reader):
         super().__init__(server)
         self._id = next(ANALYSIS_ID)
@@ -166,38 +166,10 @@ class TimeCharts(TrameComponent):
                         density="compact",
                     )
 
-                with html.Div(classes="flex-fill pa-2 br-red"):
+                with html.Div(classes="flex-fill pa-2 border-thin"):
                     self.update_figure = plotly.Figure(
                         display_mode_bar=("false",)
                     ).update
 
-                with self.ctx.setup.provide_as("controls"):
-                    with html.Div(
-                        style="position:absolute;left:1rem;top:1rem;z-index:100;",
-                        classes="d-flex flex-column ga-2 align-start",
-                    ):
-                        with v3.VCard(
-                            classes="d-flex align-center",
-                            v_if="controls.active_viz.includes('cloud')",
-                        ):
-                            v3.VBtn(
-                                icon="mdi-weather-cloudy",
-                                density="comfortable",
-                                variant="plain",
-                                classes="rounded ma-1",
-                                click="controls.cloud.show = !controls.cloud.show",
-                            )
-                            v3.VSlider(
-                                v_show="controls.cloud.show",
-                                v_model="controls.cloud.opacity",
-                                min=0,
-                                max=1,
-                                step=0.01,
-                                style="width: 300px",
-                                density="compact",
-                                hide_details=True,
-                                classes="mr-4",
-                            )
 
-
-register_analysis(NAME, TimeCharts)
+register_analysis(NAME, ColumnHeatMap)

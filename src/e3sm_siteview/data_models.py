@@ -70,6 +70,12 @@ class DrappedChart(dataclass.StateDataModel):
     column = dataclass.Sync(int, 0)
 
 
+class CellTimeCharts(dataclass.StateDataModel):
+    fields = dataclass.Sync(list[str], list)
+    columns = dataclass.Sync(list[int], list)
+    results = dataclass.Sync(list, list)
+
+
 class GlobalParameters(dataclass.StateDataModel):
     # Data handling
     readers = dataclass.ServerOnly(set, set)
@@ -94,15 +100,18 @@ class GlobalParameters(dataclass.StateDataModel):
     slice = dataclass.Sync(SliceControls, has_dataclass=True)
     find_data = dataclass.Sync(FindDataControls, has_dataclass=True)
     column = dataclass.Sync(ColumnControls, has_dataclass=True)
-    # Time Chart controls
+    # Heatmap Chart controls
     surface_chart = dataclass.Sync(DrappedChart, has_dataclass=True)
+    # Line chart controls
+    line_chart = dataclass.Sync(CellTimeCharts, has_dataclass=True)
     # Analysis
     active_analysis = dataclass.Sync(list[str], ["viz"])
     available_analysis = dataclass.Sync(
         list,
         [
             ("viz", "mdi-earth"),
-            ("time", "mdi-chart-line"),
+            ("columnHeatMap", "mdi-view-grid-compact"),
+            ("cellTimeChart", "mdi-chart-line"),
         ],
     )
 
@@ -115,6 +124,7 @@ class GlobalParameters(dataclass.StateDataModel):
         self.find_data = FindDataControls(server)
         self.column = ColumnControls(server)
         self.surface_chart = DrappedChart(server)
+        self.line_chart = CellTimeCharts(server)
 
         self.ctrl.load_fields = self.load_fields
 

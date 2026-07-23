@@ -29,8 +29,9 @@ class VisualizationPage(TrameApp):
         self._build_ui()
 
     def _load_layout(self):
+        list_of_analysis = [a[0] for a in self.ctx.setup.available_analysis]
         for viewer in self.ctx.viewers.values():
-            viewer.add_analysis("viz", "time")
+            viewer.add_analysis(*list_of_analysis)
 
 
 def main():
