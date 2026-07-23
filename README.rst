@@ -1,7 +1,11 @@
 E3SM Site View
 ----------------------------------------
 
-E3SM Column Explorer
+The SiteView UI presents an ARM observatory as a candidate location for in-depth analysis of simulation results.
+
+
+.. image:: https://raw.githubusercontent.com/Kitware/SiteView/main/SiteView.png
+  :alt: Example of e3sm-siteview data explorer
 
 License
 ----------------------------------------
