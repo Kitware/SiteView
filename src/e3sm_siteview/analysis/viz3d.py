@@ -11,6 +11,7 @@ from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa: F401
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
+    vtkCamera,
     vtkDataSetMapper,
     vtkRenderer,
     vtkRenderWindow,
@@ -22,6 +23,8 @@ from e3sm_siteview.components import controls
 from e3sm_siteview.io import EAMColumnVolume
 
 NAME = "viz"
+
+CAMERA = vtkCamera()
 
 
 class Viz3D(TrameComponent):
@@ -64,7 +67,7 @@ class Viz3D(TrameComponent):
         return ds.cell_data[self.ctx.setup.volume.color_by]
 
     def _setup_vtk(self):
-        renderer = vtkRenderer(background=(0.5, 0.5, 0.5))
+        renderer = vtkRenderer(background=(0.5, 0.5, 0.5), active_camera=CAMERA)
         renderWindow = vtkRenderWindow()
         renderWindow.AddRenderer(renderer)
         renderWindow.OffScreenRenderingOn()
