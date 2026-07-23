@@ -56,8 +56,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build]
 include = [
   "/src/**/*.py",
-  "/src/e3sm_site_view/**/*.js",
-  "/src/e3sm_site_view/**/*.css",
+  "/src/e3sm_siteview/assets/**/*.png",
+  "/src/e3sm_siteview/module/serve/**",
 ]
 
 [tool.hatch.build.targets.wheel]

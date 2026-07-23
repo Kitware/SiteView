@@ -118,6 +118,8 @@ class Viz3D(TrameComponent):
         self.horizontal_slice >> vtkCleanUnstructuredGrid() >> self.slice_h_mapper
         self.colormap_config.register_mapper(self.slice_h_mapper)
 
+        self.renderer.ResetCamera()
+
     def _subscribe(self, obj, watch, callback, eager=False, sync=False):
         self._subscriptions.append(obj.watch(watch, callback, eager=eager, sync=sync))
 
