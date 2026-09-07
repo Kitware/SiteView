@@ -2,11 +2,13 @@ def configure_and_parse(parser):
     parser.add_argument(
         "--cf",
         help="the nc file with connnectivity information",
+        required=True,
     )
     parser.add_argument(
         "--df",
         nargs="+",
         help="the nc file with data/variables",
+        required=True,
     )
     parser.add_argument(
         "--perf",
