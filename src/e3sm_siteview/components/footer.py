@@ -33,6 +33,7 @@ class GeneralControls(v3.VFooter):
                 classes="mr-4",
             ):
                 v3.VBtn(icon="mdi-weather-cloudy", value="cloud")
+                v3.VBtn(icon="mdi-arrow-expand-vertical", value="zscale")
                 # v3.VBtn(icon="mdi-layers-outline", value="surface")
                 v3.VBtn(icon="mdi-cube-outline", value="volume")
                 v3.VBtn(icon="mdi-altimeter", value="slice")  # mdi-flip-vertical

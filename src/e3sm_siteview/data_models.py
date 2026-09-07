@@ -61,6 +61,11 @@ class ColumnControls(dataclass.StateDataModel):
     col_max_idx = dataclass.Sync(int, 0)
 
 
+class ZScaleControls(dataclass.StateDataModel):
+    show = dataclass.Sync(bool, True)
+    scale = dataclass.Sync(float, 0.1)
+
+
 class VisualizationAnalysis(dataclass.StateDataModel):
     panels = dataclass.Sync(dict[str, str], dict)
 
@@ -100,6 +105,7 @@ class GlobalParameters(dataclass.StateDataModel):
     slice = dataclass.Sync(SliceControls, has_dataclass=True)
     find_data = dataclass.Sync(FindDataControls, has_dataclass=True)
     column = dataclass.Sync(ColumnControls, has_dataclass=True)
+    zscale = dataclass.Sync(ZScaleControls, has_dataclass=True)
     # Heatmap Chart controls
     surface_chart = dataclass.Sync(DrappedChart, has_dataclass=True)
     # Line chart controls
@@ -125,6 +131,7 @@ class GlobalParameters(dataclass.StateDataModel):
         self.column = ColumnControls(server)
         self.surface_chart = DrappedChart(server)
         self.line_chart = CellTimeCharts(server)
+        self.zscale = ZScaleControls(server)
 
         self.ctrl.load_fields = self.load_fields
 

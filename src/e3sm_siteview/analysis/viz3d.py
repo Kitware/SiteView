@@ -136,11 +136,21 @@ class Viz3D(TrameComponent):
         self._subscribe(
             self.ctx.setup, ["active_viz"], self._on_visibility_change, eager=True
         )
+        self._subscribe(
+            self.ctx.setup.zscale, ["scale"], self._on_z_scale_change, eager=True
+        )
         self.ctrl.update_color_range.add(self.colormap_config.update_color_range)
 
     def unbind_reactivity(self):
         while self._subscriptions:
             self._subscriptions.pop()()
+
+    def _on_z_scale_change(self, zscale):
+        new_scale = (1, 1, zscale)
+        self.slice_h_actor.scale = new_scale
+        self.volume_actor.scale = new_scale
+        self.outline_actor.scale = new_scale
+        self.html_view.reset_camera()
 
     def _on_visibility_change(self, active_viz):
         has_volume = "volume" in active_viz
@@ -205,6 +215,7 @@ class Viz3D(TrameComponent):
                     )
 
                 with controls.Controls(), controls.TopLeftFloatControls():
+                    controls.ZScale()
                     controls.Cloud()
                     controls.Surface()
                     controls.Volume()

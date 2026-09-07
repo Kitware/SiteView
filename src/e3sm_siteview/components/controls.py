@@ -48,6 +48,23 @@ class BaseToolbar(v3.VCard):
             )
 
 
+class ZScale(BaseToolbar):
+    def __init__(self):
+        super().__init__(keys=["zscale"], icon="mdi-arrow-expand-vertical")
+        with self:
+            v3.VSlider(
+                v_show="controls.zscale.show",
+                v_model="controls.zscale.scale",
+                min=0.001,
+                max=0.1,
+                step=0.001,
+                style="width: 370px",
+                density="compact",
+                hide_details=True,
+                classes="mr-4",
+            )
+
+
 class Cloud(BaseToolbar):
     def __init__(self):
         super().__init__(keys=["cloud"], icon="mdi-weather-cloudy")
