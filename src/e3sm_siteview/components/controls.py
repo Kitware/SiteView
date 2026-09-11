@@ -150,7 +150,7 @@ class Volume(BaseToolbar):
 
 class HorizontalSlice(BaseToolbar):
     def __init__(self):
-        super().__init__(keys=["slice"], icon="mdi-altimeter")
+        super().__init__(keys=["hslice"], icon="mdi-altimeter")
         with self:
             v3.VSlider(
                 v_show="controls.slice.show",
@@ -167,22 +167,34 @@ class HorizontalSlice(BaseToolbar):
 
 class VerticalSlice(BaseToolbar):
     def __init__(self):
-        super().__init__(keys=["slice"], icon="mdi-flip-horizontal")
+        super().__init__(keys=["vslice"], icon="mdi-flip-horizontal")
         with self:
-            v3.VNumberInput(
+            v3.VSlider(
                 v_show="controls.slice.show",
                 v_model="controls.slice.orientation",
-                step=[1],
-                min=[-90],
-                max=[90],
+                step="1",
+                min=[-180],
+                max=[180],
                 hide_details=True,
-                density="compact",
-                prepend_inner_icon="mdi-compass-outline",
-                control_variant="stacked",
-                variant="flat",
-                classes="border-e-thin border-s-thin",
+                density="comfortable",
+                classes="mr-4",
                 style="width: 370px",
+                # prepend_icon="mdi-compass-outline",
             )
+            # v3.VNumberInput(
+            #     v_show="controls.slice.show",
+            #     v_model="controls.slice.orientation",
+            #     step=[1],
+            #     min=[-180],
+            #     max=[180],
+            #     hide_details=True,
+            #     density="compact",
+            #     prepend_inner_icon="mdi-compass-outline",
+            #     control_variant="stacked",
+            #     variant="flat",
+            #     classes="border-e-thin border-s-thin",
+            #     style="width: 370px",
+            # )
 
 
 class FindData(BaseToolbar):

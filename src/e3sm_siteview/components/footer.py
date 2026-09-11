@@ -36,7 +36,8 @@ class GeneralControls(v3.VFooter):
                 v3.VBtn(icon="mdi-arrow-expand-vertical", value="zscale")
                 # v3.VBtn(icon="mdi-layers-outline", value="surface")
                 v3.VBtn(icon="mdi-cube-outline", value="volume")
-                v3.VBtn(icon="mdi-altimeter", value="slice")  # mdi-flip-vertical
+                v3.VBtn(icon="mdi-altimeter", value="hslice")
+                v3.VBtn(icon="mdi-flip-horizontal", value="vslice")
                 v3.VBtn(icon="mdi-magnify-scan", value="find_data")
                 v3.VBtn(icon="mdi-sort", value="column")
                 v3.VBtn(icon="mdi-map-marker-plus", value="probes")

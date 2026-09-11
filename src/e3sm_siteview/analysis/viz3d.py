@@ -1,3 +1,5 @@
+import math
+
 import vtkmodules.vtkRenderingOpenGL2  # noqa: F401
 from trame.app import TrameComponent
 from trame.dataclasses.colormaps import ColormapConfig
@@ -5,7 +7,11 @@ from trame.ui.html import DivLayout
 from trame.widgets import colormaps, html
 from trame.widgets import vtk as vtkw
 from trame.widgets import vuetify3 as v3
-from vtkmodules.vtkFiltersCore import vtkFeatureEdges
+from vtkmodules.vtkCommonDataModel import vtkPlane
+from vtkmodules.vtkFiltersCore import (
+    vtk3DLinearGridCrinkleExtractor,
+    vtkFeatureEdges,
+)
 from vtkmodules.vtkFiltersGeneral import vtkCleanUnstructuredGrid
 from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa: F401
@@ -57,12 +63,21 @@ class Viz3D(TrameComponent):
         return self._id
 
     def get_data_array(self):
-        if "volume" in self.ctx.setup.active_viz:
+        if (
+            "hslice" in self.ctx.setup.active_viz
+            and "vslice" in self.ctx.setup.active_viz
+        ):
             self.volume.Update()
             ds = self.volume.GetOutputDataObject(0)
-        else:
+        elif "hslice" in self.ctx.setup.active_viz:
             self.horizontal_slice.Update()
             ds = self.horizontal_slice.GetOutputDataObject(0)
+        elif "vslice" in self.ctx.setup.active_viz:
+            self.slice_v_cutter.Update()
+            ds = self.slice_v_cutter.GetOutputDataObject(0)
+        else:
+            self.volume.Update()
+            ds = self.volume.GetOutputDataObject(0)
 
         return ds.cell_data[self.ctx.setup.volume.color_by]
 
@@ -118,6 +133,30 @@ class Viz3D(TrameComponent):
         self.horizontal_slice >> vtkCleanUnstructuredGrid() >> self.slice_h_mapper
         self.colormap_config.register_mapper(self.slice_h_mapper)
 
+        # VSlice
+        self.slice_v_plane = vtkPlane(normal=(1, 0, 0))
+        # self.slice_v_cutter = vtkCutter(cut_function=self.slice_v_plane)
+        self.slice_v_cutter = vtk3DLinearGridCrinkleExtractor(
+            implicit_function=self.slice_v_plane
+        )
+        self.slice_v_cutter.CopyCellDataOn()
+        self.slice_v_mapper = vtkDataSetMapper()
+        self.slice_v_mapper.ScalarVisibilityOn()
+        self.slice_v_mapper.SetColorModeToMapScalars()
+        self.slice_v_mapper.SetScalarModeToUseCellFieldData()
+        self.slice_v_actor = vtkActor(
+            mapper=self.slice_v_mapper, force_opaque=1, scale=(1, 1, 0.1)
+        )
+        self.slice_v_actor.property.edge_visibility = 1
+        self.renderer.AddActor(self.slice_v_actor)
+        (
+            self.clean_volume
+            >> self.slice_v_cutter
+            >> vtkCleanUnstructuredGrid()
+            >> self.slice_v_mapper
+        )
+        self.colormap_config.register_mapper(self.slice_v_mapper)
+
         self.renderer.ResetCamera()
 
     def _subscribe(self, obj, watch, callback, eager=False, sync=False):
@@ -134,29 +173,41 @@ class Viz3D(TrameComponent):
             self.ctx.setup.slice, ["altitude"], self._on_column_slice_change, eager=True
         )
         self._subscribe(
+            self.ctx.setup.slice,
+            ["orientation"],
+            self._on_orientation_slice_change,
+            eager=True,
+        )
+        self._subscribe(
             self.ctx.setup, ["active_viz"], self._on_visibility_change, eager=True
         )
         self._subscribe(
             self.ctx.setup.zscale, ["scale"], self._on_z_scale_change, eager=True
         )
+        self._subscribe(self.colormap_config, ["mapper_change"], self._need_render)
         self.ctrl.update_color_range.add(self.colormap_config.update_color_range)
 
     def unbind_reactivity(self):
         while self._subscriptions:
             self._subscriptions.pop()()
 
+    def _need_render(self, _):
+        self.html_view.update()
+
     def _on_z_scale_change(self, zscale):
         new_scale = (1, 1, zscale)
         self.slice_h_actor.scale = new_scale
+        self.slice_v_actor.scale = new_scale
         self.volume_actor.scale = new_scale
         self.outline_actor.scale = new_scale
         self.html_view.reset_camera()
 
     def _on_visibility_change(self, active_viz):
         has_volume = "volume" in active_viz
-        has_slice = "slice" in active_viz
+        has_slice = "hslice" in active_viz or "vslice" in active_viz
 
         self.slice_h_actor.visibility = 0
+        self.slice_v_actor.visibility = 0
         self.outline_actor.visibility = 0
         self.volume_actor.visibility = 0
 
@@ -164,7 +215,8 @@ class Viz3D(TrameComponent):
             self.volume_actor.visibility = 1
             self.outline_actor.visibility = 0
         if has_slice:
-            self.slice_h_actor.visibility = 1
+            self.slice_h_actor.visibility = "hslice" in active_viz
+            self.slice_v_actor.visibility = "vslice" in active_viz
             self.outline_actor.visibility = has_volume
             self.volume_actor.visibility = 0
 
@@ -193,6 +245,18 @@ class Viz3D(TrameComponent):
         self.ctrl.update_color_range.enable_empty()()
         self.html_view.reset_camera()
 
+    def _on_orientation_slice_change(self, heading):
+        nx = math.cos(math.radians(heading))
+        ny = math.sin(math.radians(heading))
+        bounds = self.outline_actor.bounds
+        self.slice_v_plane.origin = (
+            0.5 * (bounds[0] + bounds[1]),
+            0.5 * (bounds[2] + bounds[3]),
+            0.5 * (bounds[4] + bounds[5]),
+        )
+        self.slice_v_plane.normal = (nx, ny, 0)
+        self.html_view.update()
+
     def _build_ui(self):
         with DivLayout(self.server, self.name, classes="h-100") as self.ui:
             with html.Div(
@@ -220,7 +284,7 @@ class Viz3D(TrameComponent):
                     controls.Surface()
                     controls.Volume()
                     controls.HorizontalSlice()
-                    # controls.VerticalSlice()
+                    controls.VerticalSlice()
                     controls.FindData()
                     controls.CropColumn()
 
