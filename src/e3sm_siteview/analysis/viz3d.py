@@ -170,10 +170,13 @@ class Viz3D(TrameComponent):
             self.ctx.setup.column, ["altitude_range"], self._on_column_height_change
         )
         self._subscribe(
-            self.ctx.setup.slice, ["altitude"], self._on_column_slice_change, eager=True
+            self.ctx.setup.hslice,
+            ["altitude"],
+            self._on_column_slice_change,
+            eager=True,
         )
         self._subscribe(
-            self.ctx.setup.slice,
+            self.ctx.setup.vslice,
             ["orientation"],
             self._on_orientation_slice_change,
             eager=True,

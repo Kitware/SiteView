@@ -153,8 +153,8 @@ class HorizontalSlice(BaseToolbar):
         super().__init__(keys=["hslice"], icon="mdi-altimeter")
         with self:
             v3.VSlider(
-                v_show="controls.slice.show",
-                v_model="controls.slice.altitude",
+                v_show="controls.hslice.show",
+                v_model="controls.hslice.altitude",
                 step="1",
                 min=("controls.column.altitude_range[0]",),
                 max=("controls.column.altitude_range[1]",),
@@ -170,8 +170,8 @@ class VerticalSlice(BaseToolbar):
         super().__init__(keys=["vslice"], icon="mdi-flip-horizontal")
         with self:
             v3.VSlider(
-                v_show="controls.slice.show",
-                v_model="controls.slice.orientation",
+                v_show="controls.vslice.show",
+                v_model="controls.vslice.orientation",
                 step="1",
                 min=[-180],
                 max=[180],

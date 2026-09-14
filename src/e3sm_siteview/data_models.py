@@ -44,9 +44,13 @@ class ColorByControls(dataclass.StateDataModel):
     color_by = dataclass.Sync(str)
 
 
-class SliceControls(dataclass.StateDataModel):
+class VSliceControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
     orientation = dataclass.Sync(int, 0)
+
+
+class HSliceControls(dataclass.StateDataModel):
+    show = dataclass.Sync(bool, True)
     altitude = dataclass.Sync(int, 0)
 
 
@@ -102,7 +106,8 @@ class GlobalParameters(dataclass.StateDataModel):
     cloud = dataclass.Sync(CloudControls, has_dataclass=True)
     surface = dataclass.Sync(ColorByControls, has_dataclass=True)
     volume = dataclass.Sync(ColorByControls, has_dataclass=True)
-    slice = dataclass.Sync(SliceControls, has_dataclass=True)
+    vslice = dataclass.Sync(VSliceControls, has_dataclass=True)
+    hslice = dataclass.Sync(HSliceControls, has_dataclass=True)
     find_data = dataclass.Sync(FindDataControls, has_dataclass=True)
     column = dataclass.Sync(ColumnControls, has_dataclass=True)
     zscale = dataclass.Sync(ZScaleControls, has_dataclass=True)
@@ -126,7 +131,8 @@ class GlobalParameters(dataclass.StateDataModel):
         self.cloud = CloudControls(server)
         self.surface = ColorByControls(server)
         self.volume = ColorByControls(server)
-        self.slice = SliceControls(server)
+        self.vslice = VSliceControls(server)
+        self.hslice = HSliceControls(server)
         self.find_data = FindDataControls(server)
         self.column = ColumnControls(server)
         self.surface_chart = DrappedChart(server)

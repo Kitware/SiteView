@@ -46,7 +46,7 @@ class CellTimeChart(TrameComponent):
         self._subscribe(
             self.ctx.setup.line_chart, ["fields", "columns"], self._compute_line_plots
         )
-        self._subscribe(self.ctx.setup.slice, ["altitude"], self._compute_line_plots)
+        self._subscribe(self.ctx.setup.hslice, ["altitude"], self._compute_line_plots)
         self._subscribe(self.ctx.setup, ["time_index"], self._compute_line_plots)
 
     def unbind_reactivity(self):
@@ -56,7 +56,7 @@ class CellTimeChart(TrameComponent):
     def _compute_line_plots(self, *_):
         fields = self.ctx.setup.line_chart.fields
         col_ids = self.ctx.setup.line_chart.columns
-        altitude_idx = self.ctx.setup.slice.altitude
+        altitude_idx = self.ctx.setup.hslice.altitude
         time_idx = self.ctx.setup.time_index
         self.ctx.setup.line_chart.results = []
 
