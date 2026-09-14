@@ -36,6 +36,8 @@ class Variable(dataclass.StateDataModel):
 
 class CloudControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
+    threshold_by = dataclass.Sync(str)
+    threshold_value = dataclass.Sync(float, 0.5)
     opacity = dataclass.Sync(float, 0.5)
 
 

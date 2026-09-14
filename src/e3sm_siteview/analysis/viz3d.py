@@ -7,10 +7,11 @@ from trame.ui.html import DivLayout
 from trame.widgets import colormaps, html
 from trame.widgets import vtk as vtkw
 from trame.widgets import vuetify3 as v3
-from vtkmodules.vtkCommonDataModel import vtkPlane
+from vtkmodules.vtkCommonDataModel import vtkDataObject, vtkPlane
 from vtkmodules.vtkFiltersCore import (
     vtk3DLinearGridCrinkleExtractor,
     vtkFeatureEdges,
+    vtkThreshold,
 )
 from vtkmodules.vtkFiltersGeneral import vtkCleanUnstructuredGrid
 from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
@@ -157,6 +158,22 @@ class Viz3D(TrameComponent):
         )
         self.colormap_config.register_mapper(self.slice_v_mapper)
 
+        # Volume
+        self.threshold = vtkThreshold()
+        self.threshold_mapper = vtkDataSetMapper()
+        self.threshold_actor = vtkActor(
+            mapper=self.threshold_mapper,
+            scale=(1, 1, 0.1),
+            visibility=0,
+        )
+        self.renderer.AddActor(self.threshold_actor)
+        (
+            self.volume
+            >> self.threshold
+            >> vtkCleanUnstructuredGrid()
+            >> self.threshold_mapper
+        )
+
         self.renderer.ResetCamera()
 
     def _subscribe(self, obj, watch, callback, eager=False, sync=False):
@@ -181,6 +198,14 @@ class Viz3D(TrameComponent):
             self._on_orientation_slice_change,
             eager=True,
         )
+
+        self._subscribe(
+            self.ctx.setup.cloud,
+            ["threshold_by", "threshold_value", "opacity"],
+            self._on_cloud_change,
+            eager=True,
+        )
+
         self._subscribe(
             self.ctx.setup, ["active_viz"], self._on_visibility_change, eager=True
         )
@@ -203,23 +228,30 @@ class Viz3D(TrameComponent):
         self.slice_v_actor.scale = new_scale
         self.volume_actor.scale = new_scale
         self.outline_actor.scale = new_scale
+        self.threshold_actor.scale = new_scale
         self.html_view.reset_camera()
 
     def _on_visibility_change(self, active_viz):
         has_volume = "volume" in active_viz
         has_slice = "hslice" in active_viz or "vslice" in active_viz
+        has_cloud = "cloud" in active_viz
+        has_inside = has_slice or has_cloud
 
         self.slice_h_actor.visibility = 0
         self.slice_v_actor.visibility = 0
         self.outline_actor.visibility = 0
         self.volume_actor.visibility = 0
+        self.threshold_actor.visibility = 1 if has_cloud else 0
 
         if has_volume:
             self.volume_actor.visibility = 1
             self.outline_actor.visibility = 0
+
         if has_slice:
             self.slice_h_actor.visibility = "hslice" in active_viz
             self.slice_v_actor.visibility = "vslice" in active_viz
+
+        if has_inside:
             self.outline_actor.visibility = has_volume
             self.volume_actor.visibility = 0
 
@@ -258,6 +290,22 @@ class Viz3D(TrameComponent):
             0.5 * (bounds[4] + bounds[5]),
         )
         self.slice_v_plane.normal = (nx, ny, 0)
+        self.html_view.update()
+
+    def _on_cloud_change(self, threshold_by, threshold_value, opacity):
+        if not threshold_by:
+            return
+        ds = self.clean_volume.GetOutput()
+        array = ds.cell_data[threshold_by]
+        min_value, max_value = array.GetRange()
+        value = (max_value - min_value) * threshold_value + min_value
+
+        self.threshold.SetInputArrayToProcess(
+            0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_CELLS, threshold_by
+        )
+        self.threshold.SetThresholdFunction(2)
+        self.threshold.SetUpperThreshold(value)
+        self.threshold_actor.property.opacity = opacity
         self.html_view.update()
 
     def _build_ui(self):

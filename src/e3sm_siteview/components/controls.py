@@ -69,17 +69,43 @@ class Cloud(BaseToolbar):
     def __init__(self):
         super().__init__(keys=["cloud"], icon="mdi-weather-cloudy")
         with self:
-            v3.VSlider(
-                v_show="controls.cloud.show",
-                v_model="controls.cloud.opacity",
-                min=0,
-                max=1,
-                step=0.01,
+            with v3.VCol(
+                classes="border-s px-0",
                 style="width: 370px",
-                density="compact",
-                hide_details=True,
-                classes="mr-4",
-            )
+                v_show="controls.cloud.show",
+            ):
+                v3.VSelect(
+                    v_show="controls.cloud.show",
+                    v_model=("controls.cloud.threshold_by", None),
+                    items=(
+                        "controls.variables_3d.filter(v => v.selected).map(v => v.name)",
+                    ),
+                    density="compact",
+                    hide_details=True,
+                    variant="flat",
+                )
+                v3.VSlider(
+                    v_show="controls.cloud.show",
+                    v_model="controls.cloud.threshold_value",
+                    min=0,
+                    max=1,
+                    step=0.005,
+                    density="compact",
+                    hide_details=True,
+                    prepend_icon="mdi-water-opacity",
+                    classes="pr-2",
+                )
+                v3.VSlider(
+                    v_show="controls.cloud.show",
+                    v_model="controls.cloud.opacity",
+                    min=0,
+                    max=1,
+                    step=0.01,
+                    density="compact",
+                    hide_details=True,
+                    prepend_icon="mdi-opacity",
+                    classes="pr-2",
+                )
 
 
 class Surface(BaseToolbar):
