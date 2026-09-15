@@ -24,7 +24,7 @@ class E3smSiteView(TrameApp):
         self.ctx.pages = SimpleNamespace(
             fields=pages.FieldSelectionPage(self.server),
             viz=pages.VisualizationPage(self.server),
-            site=pages.SiteSelectionPage(self.server),
+            site=pages.SiteSelectionPage(self.server),  # Must be last
         )
 
 

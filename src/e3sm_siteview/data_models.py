@@ -5,7 +5,9 @@ from trame.app import asynchronous, dataclass
 from vtkmodules.util import numpy_support
 from vtkmodules.vtkCommonCore import vtkIdList
 from vtkmodules.vtkCommonDataModel import vtkStaticPointLocator
-from vtkmodules.vtkFiltersCore import vtkCellCenters
+from vtkmodules.vtkCommonTransforms import vtkTransform
+from vtkmodules.vtkFiltersCore import vtkAppendPolyData, vtkCellCenters
+from vtkmodules.vtkFiltersGeneral import vtkTransformFilter
 
 from e3sm_siteview.constants import FIELDS_METADATA
 
@@ -63,13 +65,15 @@ class FindDataControls(dataclass.StateDataModel):
 
 class ColumnControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
-    altitude_range = dataclass.Sync(tuple[int, int], (0, 100))
+    altitude_range = dataclass.Sync(
+        tuple[int, int], (0, 100), type_checking=dataclass.TypeValidation.SKIP
+    )
     col_max_idx = dataclass.Sync(int, 0)
 
 
 class ZScaleControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
-    scale = dataclass.Sync(float, 0.1)
+    scale = dataclass.Sync(float, 500, type_checking=dataclass.TypeValidation.SKIP)
 
 
 class VisualizationAnalysis(dataclass.StateDataModel):
@@ -148,9 +152,21 @@ class GlobalParameters(dataclass.StateDataModel):
         centers.SetInputData(self.ctx.mesh)
         centers.Update()
 
+        transform = vtkTransform()
+        transform.Translate(-360, 0, 0)
+        translate = vtkTransformFilter(transform=transform)
+
+        band_0_360 = centers.GetOutput()
+        band_360_0 = translate(band_0_360)
+
+        loop = vtkAppendPolyData()
+        loop.AddInputData(band_0_360)
+        loop.AddInputData(band_360_0)
+        loop.Update()
+
         self.col_ids = vtkIdList()
         self.locator = vtkStaticPointLocator()
-        self.locator.SetDataSet(centers.GetOutput())
+        self.locator.SetDataSet(loop.GetOutput())
         self.locator.BuildLocator()
 
     @property
@@ -180,7 +196,7 @@ class GlobalParameters(dataclass.StateDataModel):
         self.locator.FindPointsWithinRadius(radius_deg, center, self.col_ids)
         self.col_ids.Sort()
         col_id = numpy_support.vtk_to_numpy(
-            self.ctx.mesh.GetCellData().GetArray("col_id")
+            self.locator.GetDataSet().GetPointData().GetArray("col_id")
         )
         selected_ids = [
             int(col_id[self.col_ids.GetId(i)])

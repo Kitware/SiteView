@@ -16,10 +16,12 @@ repos:
       - id: debug-statements
       - id: end-of-file-fixer
       - id: mixed-line-ending
+        exclude: \.vtp$
       - id: name-tests-test
         args: ["--pytest-test-first"]
       - id: requirements-txt-fixer
       - id: trailing-whitespace
+        exclude: \.(vtp|js)$
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: "v1.10.0"

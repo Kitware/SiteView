@@ -55,9 +55,9 @@ class ZScale(BaseToolbar):
             v3.VSlider(
                 v_show="controls.zscale.show",
                 v_model="controls.zscale.scale",
-                min=0.001,
-                max=0.1,
-                step=0.001,
+                min=1,
+                max=5000,
+                step=10,
                 style="width: 370px",
                 density="compact",
                 hide_details=True,

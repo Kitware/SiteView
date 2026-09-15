@@ -11,11 +11,14 @@ from vtkmodules.vtkCommonDataModel import vtkDataObject, vtkPlane
 from vtkmodules.vtkFiltersCore import (
     vtk3DLinearGridCrinkleExtractor,
     vtkFeatureEdges,
+    vtkPolyDataToUnstructuredGrid,
     vtkThreshold,
 )
 from vtkmodules.vtkFiltersGeneral import vtkCleanUnstructuredGrid
 from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
+from vtkmodules.vtkFiltersSources import vtkSphereSource
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa: F401
+from vtkmodules.vtkIOXML import vtkXMLPolyDataReader
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
     vtkCamera,
@@ -27,7 +30,13 @@ from vtkmodules.vtkRenderingCore import (
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
 from e3sm_siteview.components import controls
-from e3sm_siteview.io import EAMColumnVolume
+from e3sm_siteview.io import (
+    CONTINENT_PATH,
+    EARTH_RADIUS,
+    EAMColumnVolume,
+    EAMGridLines,
+    EAMProject,
+)
 
 NAME = "viz"
 
@@ -38,6 +47,8 @@ class Viz3D(TrameComponent):
     def __init__(self, server, column_reader):
         super().__init__(server)
         self._id = next(ANALYSIS_ID)
+        self.html_view = None
+        self._projections = []
         self._subscriptions = []
 
         self.columns = column_reader
@@ -82,6 +93,27 @@ class Viz3D(TrameComponent):
 
         return ds.cell_data[self.ctx.setup.volume.color_by]
 
+    def _proj(self):
+        proj = EAMProject()
+        proj.SetProjection(3)  # spherical
+        self._projections.append(proj)
+        return proj
+
+    def _reset_camera(self):
+        x_rad = math.radians(self.ctx.setup.center[0])
+        y_rad = math.radians(self.ctx.setup.center[1])
+        cos_y_rad = math.cos(y_rad)
+        xs = EARTH_RADIUS * math.sin(x_rad) * cos_y_rad
+        ys = EARTH_RADIUS * math.sin(y_rad)
+        zs = EARTH_RADIUS * math.cos(x_rad) * cos_y_rad
+        self.renderer.active_camera.focal_point = (xs, ys, zs)
+        self.renderer.active_camera.position = (xs * 1000, ys * 1000, zs * 1000)
+        self.renderer.active_camera.view_up = (0, 0, 1)
+        self.renderer.ResetCamera(self.outline_actor.bounds)
+
+        if self.html_view:
+            self.html_view.update()
+
     def _setup_vtk(self):
         renderer = vtkRenderer(background=(0.5, 0.5, 0.5), active_camera=CAMERA)
         renderWindow = vtkRenderWindow()
@@ -101,21 +133,24 @@ class Viz3D(TrameComponent):
         self.volume_mapper.SetColorModeToMapScalars()
         self.volume_mapper.SetScalarModeToUseCellFieldData()
         self.volume_actor = vtkActor(
-            mapper=self.volume_mapper, force_opaque=1, scale=(1, 1, 0.1)
+            mapper=self.volume_mapper,
+            force_opaque=1,
         )
         self.renderer.AddActor(self.volume_actor)
-        self.clean_volume >> self.volume_mapper
+        self.clean_volume >> self._proj() >> self.volume_mapper
         self.colormap_config.register_mapper(self.volume_mapper)
 
         # Volume outline
         self.outline_mapper = vtkDataSetMapper()
         self.outline_mapper.ScalarVisibilityOff()
         self.outline_actor = vtkActor(
-            mapper=self.outline_mapper, force_opaque=1, scale=(1, 1, 0.1)
+            mapper=self.outline_mapper,
+            force_opaque=1,
         )
         self.renderer.AddActor(self.outline_actor)
         (
             self.clean_volume
+            >> self._proj()
             >> vtkGeometryFilter()
             >> vtkFeatureEdges()
             >> self.outline_mapper
@@ -127,11 +162,17 @@ class Viz3D(TrameComponent):
         self.slice_h_mapper.SetColorModeToMapScalars()
         self.slice_h_mapper.SetScalarModeToUseCellFieldData()
         self.slice_h_actor = vtkActor(
-            mapper=self.slice_h_mapper, force_opaque=1, scale=(1, 1, 0.1)
+            mapper=self.slice_h_mapper,
+            force_opaque=1,
         )
         self.slice_h_actor.property.edge_visibility = 1
         self.renderer.AddActor(self.slice_h_actor)
-        self.horizontal_slice >> vtkCleanUnstructuredGrid() >> self.slice_h_mapper
+        (
+            self.horizontal_slice
+            >> vtkCleanUnstructuredGrid()
+            >> self._proj()
+            >> self.slice_h_mapper
+        )
         self.colormap_config.register_mapper(self.slice_h_mapper)
 
         # VSlice
@@ -146,7 +187,8 @@ class Viz3D(TrameComponent):
         self.slice_v_mapper.SetColorModeToMapScalars()
         self.slice_v_mapper.SetScalarModeToUseCellFieldData()
         self.slice_v_actor = vtkActor(
-            mapper=self.slice_v_mapper, force_opaque=1, scale=(1, 1, 0.1)
+            mapper=self.slice_v_mapper,
+            force_opaque=1,
         )
         self.slice_v_actor.property.edge_visibility = 1
         self.renderer.AddActor(self.slice_v_actor)
@@ -154,6 +196,7 @@ class Viz3D(TrameComponent):
             self.clean_volume
             >> self.slice_v_cutter
             >> vtkCleanUnstructuredGrid()
+            >> self._proj()
             >> self.slice_v_mapper
         )
         self.colormap_config.register_mapper(self.slice_v_mapper)
@@ -163,18 +206,52 @@ class Viz3D(TrameComponent):
         self.threshold_mapper = vtkDataSetMapper()
         self.threshold_actor = vtkActor(
             mapper=self.threshold_mapper,
-            scale=(1, 1, 0.1),
             visibility=0,
         )
         self.renderer.AddActor(self.threshold_actor)
         (
             self.volume
+            >> self._proj()
             >> self.threshold
             >> vtkCleanUnstructuredGrid()
             >> self.threshold_mapper
         )
 
-        self.renderer.ResetCamera()
+        # Continents
+        reader = vtkXMLPolyDataReader(file_name=str(CONTINENT_PATH))
+        mapper = vtkDataSetMapper()
+        self.earth_actor = vtkActor(mapper=mapper)
+        reader >> vtkPolyDataToUnstructuredGrid() >> self._proj() >> mapper
+        self.renderer.AddActor(self.earth_actor)
+        mapper.Update()
+
+        self.earth_actor.property.render_lines_as_tubes = 1
+        self.earth_actor.property.line_width = 1.0
+        self.earth_actor.property.ambient_color = (0, 0, 0)
+        self.earth_actor.property.diffuse_color = (0, 0, 0)
+
+        # Earth sphere
+        sphere = vtkSphereSource(
+            radius=EARTH_RADIUS - 10000, theta_resolution=180, phi_resolution=360
+        )
+        sphere_mapper = vtkDataSetMapper()
+        sphere_actor = vtkActor(mapper=sphere_mapper)
+        sphere_actor.property.ambient_color = (0.67, 0.67, 0.67)
+        sphere_actor.property.diffuse_color = (0.67, 0.67, 0.67)
+        sphere >> sphere_mapper
+        self.renderer.AddActor(sphere_actor)
+
+        # Earth grid
+        self.grid = EAMGridLines()
+        self.grid.SetInterval(10)
+        grid_mapper = vtkDataSetMapper()
+        grid_actor = vtkActor(mapper=grid_mapper)
+        grid_actor.property.ambient_color = (0, 0, 0)
+        grid_actor.property.diffuse_color = (0, 0, 0)
+        self.grid >> self._proj() >> grid_mapper
+        self.renderer.AddActor(grid_actor)
+
+        self._reset_camera()
 
     def _subscribe(self, obj, watch, callback, eager=False, sync=False):
         self._subscriptions.append(obj.watch(watch, callback, eager=eager, sync=sync))
@@ -223,13 +300,10 @@ class Viz3D(TrameComponent):
         self.html_view.update()
 
     def _on_z_scale_change(self, zscale):
-        new_scale = (1, 1, zscale)
-        self.slice_h_actor.scale = new_scale
-        self.slice_v_actor.scale = new_scale
-        self.volume_actor.scale = new_scale
-        self.outline_actor.scale = new_scale
-        self.threshold_actor.scale = new_scale
-        self.html_view.reset_camera()
+        for projection_filter in self._projections:
+            projection_filter.SetAltitudeScale(zscale)
+
+        self.html_view.update()
 
     def _on_visibility_change(self, active_viz):
         has_volume = "volume" in active_viz
@@ -256,7 +330,7 @@ class Viz3D(TrameComponent):
             self.volume_actor.visibility = 0
 
         self.ctrl.update_color_range.enable_empty()()
-        self.html_view.reset_camera()
+        self.html_view.update()
 
     def _on_volume_color_by_change(self, color_by):
         if color_by:
@@ -266,28 +340,28 @@ class Viz3D(TrameComponent):
     def _on_column_height_change(self, altitude_range):
         self.volume.SetLevelRange(*altitude_range)
 
-        self.ctx.setup.slice.altitude = max(
-            self.ctx.setup.slice.altitude, altitude_range[0]
+        self.ctx.setup.hslice.altitude = max(
+            self.ctx.setup.hslice.altitude, altitude_range[0]
         )
-        self.ctx.setup.slice.altitude = min(
-            self.ctx.setup.slice.altitude, altitude_range[1]
+        self.ctx.setup.hslice.altitude = min(
+            self.ctx.setup.hslice.altitude, altitude_range[1]
         )
-
-        self.html_view.reset_camera()
+        self.ctrl.update_color_range()
+        self.html_view.update()
 
     def _on_column_slice_change(self, level):
         self.horizontal_slice.SetLevelRange(level, level)
         self.ctrl.update_color_range.enable_empty()()
-        self.html_view.reset_camera()
+        self.html_view.update()
 
     def _on_orientation_slice_change(self, heading):
         nx = math.cos(math.radians(heading))
         ny = math.sin(math.radians(heading))
-        bounds = self.outline_actor.bounds
+
         self.slice_v_plane.origin = (
-            0.5 * (bounds[0] + bounds[1]),
-            0.5 * (bounds[2] + bounds[3]),
-            0.5 * (bounds[4] + bounds[5]),
+            self.ctx.setup.center[0],
+            self.ctx.setup.center[1],
+            0,
         )
         self.slice_v_plane.normal = (nx, ny, 0)
         self.html_view.update()
@@ -318,7 +392,8 @@ class Viz3D(TrameComponent):
                     interactive_ratio=1,
                 )
                 self.ctrl.render.add(self.html_view.update)
-                self.ctrl.reset_camera.add(self.html_view.reset_camera)
+                # self.ctrl.reset_camera.add(self.html_view.reset_camera)
+                self.ctrl.reset_camera.add(self._reset_camera)
 
                 with controls.TopRightFloatControls():
                     v3.VBtn(
@@ -326,7 +401,7 @@ class Viz3D(TrameComponent):
                         classes="rounded",
                         density="comfortable",
                         variant="plain",
-                        click=self.html_view.reset_camera,
+                        click=self.ctrl.reset_camera,
                     )
 
                 with controls.Controls(), controls.TopLeftFloatControls():

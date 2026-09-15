@@ -57,6 +57,7 @@ build-backend = "hatchling.build"
 include = [
   "/src/**/*.py",
   "/src/e3sm_siteview/assets/**/*.png",
+  "/src/e3sm_siteview/io/*.vtp",
   "/src/e3sm_siteview/module/serve/**",
 ]
 
