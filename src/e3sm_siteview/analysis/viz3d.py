@@ -109,7 +109,7 @@ class Viz3D(TrameComponent):
         zs = EARTH_RADIUS * math.cos(x_rad) * cos_y_rad
         self.renderer.active_camera.focal_point = (xs, ys, zs)
         self.renderer.active_camera.position = (xs * 1000, ys * 1000, zs * 1000)
-        self.renderer.active_camera.view_up = (0, 0, 1)
+        self.renderer.active_camera.view_up = (0, 1, 0)
         self.renderer.ResetCamera(self.outline_actor.bounds)
 
         if self.view_handler:
