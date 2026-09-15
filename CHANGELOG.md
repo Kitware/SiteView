@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.1.1 (2026-09-15)
+
+### Bug Fixes
+
+- **color_by**: Start with first field
+  ([`71abb79`](https://github.com/Kitware/SiteView/commit/71abb79eeb92be8f68af1a2e19e2049583f39d6a))
+
+- **view-up**: Reset camera keep earth up
+  ([`cff29b8`](https://github.com/Kitware/SiteView/commit/cff29b84832b28ade2184666980c659556ffdba8))
+
+
 ## v1.1.0 (2026-09-15)
 
 ### Bug Fixes
