@@ -1,6 +1,6 @@
 from trame.app import TrameApp
 from trame.ui.vuetify3 import VAppLayout
-from trame.widgets import client, colormaps, dockview, plotly, vtk
+from trame.widgets import client, colormaps, dockview, plotly, rca
 from trame.widgets import vuetify3 as v3
 
 from e3sm_siteview.components import footer
@@ -11,7 +11,7 @@ class VisualizationPage(TrameApp):
         super().__init__(server)
 
         # Deferred UI initialization
-        vtk.initialize(self.server)
+        rca.initialize(self.server)
         colormaps.initialize(self.server)
         plotly.initialize(self.server)
 

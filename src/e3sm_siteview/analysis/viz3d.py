@@ -3,9 +3,9 @@ import math
 import vtkmodules.vtkRenderingOpenGL2  # noqa: F401
 from trame.app import TrameComponent
 from trame.dataclasses.colormaps import ColormapConfig
+from trame.decorators import controller
 from trame.ui.html import DivLayout
-from trame.widgets import colormaps, html
-from trame.widgets import vtk as vtkw
+from trame.widgets import colormaps, html, rca
 from trame.widgets import vuetify3 as v3
 from vtkmodules.vtkCommonDataModel import vtkDataObject, vtkPlane
 from vtkmodules.vtkFiltersCore import (
@@ -47,7 +47,7 @@ class Viz3D(TrameComponent):
     def __init__(self, server, column_reader):
         super().__init__(server)
         self._id = next(ANALYSIS_ID)
-        self.html_view = None
+        self.view_handler = None
         self._projections = []
         self._subscriptions = []
 
@@ -99,6 +99,7 @@ class Viz3D(TrameComponent):
         self._projections.append(proj)
         return proj
 
+    @controller.add("reset_camera")
     def _reset_camera(self):
         x_rad = math.radians(self.ctx.setup.center[0])
         y_rad = math.radians(self.ctx.setup.center[1])
@@ -111,8 +112,8 @@ class Viz3D(TrameComponent):
         self.renderer.active_camera.view_up = (0, 0, 1)
         self.renderer.ResetCamera(self.outline_actor.bounds)
 
-        if self.html_view:
-            self.html_view.update()
+        if self.view_handler:
+            self.view_handler.update()
 
     def _setup_vtk(self):
         renderer = vtkRenderer(background=(0.5, 0.5, 0.5), active_camera=CAMERA)
@@ -297,13 +298,13 @@ class Viz3D(TrameComponent):
             self._subscriptions.pop()()
 
     def _need_render(self, _):
-        self.html_view.update()
+        self.view_handler.update()
 
     def _on_z_scale_change(self, zscale):
         for projection_filter in self._projections:
             projection_filter.SetAltitudeScale(zscale)
 
-        self.html_view.update()
+        self.view_handler.update()
 
     def _on_visibility_change(self, active_viz):
         has_volume = "volume" in active_viz
@@ -330,12 +331,12 @@ class Viz3D(TrameComponent):
             self.volume_actor.visibility = 0
 
         self.ctrl.update_color_range.enable_empty()()
-        self.html_view.update()
+        self.view_handler.update()
 
     def _on_volume_color_by_change(self, color_by):
         if color_by:
             self.colormap_config.set_data_array(color_by, self.get_data_array, "cell")
-        self.html_view.update()
+        self.view_handler.update()
 
     def _on_column_height_change(self, altitude_range):
         self.volume.SetLevelRange(*altitude_range)
@@ -347,12 +348,12 @@ class Viz3D(TrameComponent):
             self.ctx.setup.hslice.altitude, altitude_range[1]
         )
         self.ctrl.update_color_range()
-        self.html_view.update()
+        self.view_handler.update()
 
     def _on_column_slice_change(self, level):
         self.horizontal_slice.SetLevelRange(level, level)
         self.ctrl.update_color_range.enable_empty()()
-        self.html_view.update()
+        self.view_handler.update()
 
     def _on_orientation_slice_change(self, heading):
         nx = math.cos(math.radians(heading))
@@ -364,7 +365,7 @@ class Viz3D(TrameComponent):
             0,
         )
         self.slice_v_plane.normal = (nx, ny, 0)
-        self.html_view.update()
+        self.view_handler.update()
 
     def _on_cloud_change(self, threshold_by, threshold_value, opacity):
         if not threshold_by:
@@ -380,20 +381,19 @@ class Viz3D(TrameComponent):
         self.threshold.SetThresholdFunction(2)
         self.threshold.SetUpperThreshold(value)
         self.threshold_actor.property.opacity = opacity
-        self.html_view.update()
+        self.view_handler.update()
 
     def _build_ui(self):
         with DivLayout(self.server, self.name, classes="h-100") as self.ui:
             with html.Div(
                 style="position:absolute;top:0;left:0;width:100%;height:100%;"
             ):
-                self.html_view = vtkw.VtkRemoteView(
+                view = rca.RemoteControlledArea(display="image")
+                self.view_handler = view.create_view_handler(
                     self.render_window,
-                    interactive_ratio=1,
+                    encoder="turbo-jpeg",
                 )
-                self.ctrl.render.add(self.html_view.update)
-                # self.ctrl.reset_camera.add(self.html_view.reset_camera)
-                self.ctrl.reset_camera.add(self._reset_camera)
+                self.ctrl.render.add(self.view_handler.update)
 
                 with controls.TopRightFloatControls():
                     v3.VBtn(

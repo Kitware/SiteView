@@ -6,11 +6,10 @@ authors = [
     {name = "Kitware Inc."},
 ]
 dependencies = [
-    "vtk>=9.6",
+    "vtk>=9.7",
     "trame >=3.13.2",
     "trame-vuetify",
-    "trame-rca[turbo] >=2.6",
-    "trame-vtk", # FIXME use RCA instead
+    "trame-rca[turbo] >=2.11.2",
     "trame-plotly",
     "trame-colormaps >=1.6.1",
     "trame-dockview",
