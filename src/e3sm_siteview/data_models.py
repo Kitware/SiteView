@@ -225,6 +225,9 @@ class GlobalParameters(dataclass.StateDataModel):
             n_time = tdim.size if tdim is not None else 1
             self.time_values = list(range(n_time))
 
+            if names:
+                self.volume.color_by = names[0]
+
         self.readers.add(reader)
 
     def load_fields(self):

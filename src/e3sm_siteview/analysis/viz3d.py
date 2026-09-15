@@ -259,7 +259,10 @@ class Viz3D(TrameComponent):
 
     def bind_reactivity(self):
         self._subscribe(
-            self.ctx.setup.volume, ["color_by"], self._on_volume_color_by_change
+            self.ctx.setup.volume,
+            ["color_by"],
+            self._on_volume_color_by_change,
+            eager=True,
         )
         self._subscribe(
             self.ctx.setup.column, ["altitude_range"], self._on_column_height_change
