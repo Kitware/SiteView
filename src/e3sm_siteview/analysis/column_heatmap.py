@@ -28,6 +28,7 @@ class ColumnHeatMap(TrameComponent):
 
         self._build_ui()
         self.bind_reactivity()
+        self._compute_heatmap()
 
     @property
     def name(self):

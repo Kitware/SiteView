@@ -169,6 +169,11 @@ class GlobalParameters(dataclass.StateDataModel):
         self.locator.SetDataSet(loop.GetOutput())
         self.locator.BuildLocator()
 
+        # Bind volume color_by to surface chart
+        self.volume.watch(
+            ["color_by"], self.push_volume_color_by_to_surface_chart, sync=True
+        )
+
     @property
     def ctrl(self):
         return self.server.controller
@@ -176,6 +181,9 @@ class GlobalParameters(dataclass.StateDataModel):
     @property
     def ctx(self):
         return self.server.context
+
+    def push_volume_color_by_to_surface_chart(self, *_):
+        self.surface_chart.color_by = self.volume.color_by
 
     @dataclass.watch("time_values", sync=True)
     def _on_time_values(self, values):
