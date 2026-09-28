@@ -2,6 +2,26 @@
 
 <!-- version list -->
 
+## v1.1.2 (2026-09-28)
+
+### Bug Fixes
+
+- **data-region**: Only show regions when needed
+  ([`157f034`](https://github.com/Kitware/SiteView/commit/157f034bc2598ccf50d130f9331234b1fa556bfa))
+
+- **field**: Link volume field selection to heatmap field
+  ([`0060363`](https://github.com/Kitware/SiteView/commit/00603630ef944334f5c87f157c05afe69556763a))
+
+- **heatmap**: Better axis and labels
+  ([`42ee524`](https://github.com/Kitware/SiteView/commit/42ee5247eb51b5265cedf3c0f7fa599979413414))
+
+- **lev/z**: Flip z orientation
+  ([`c4c0797`](https://github.com/Kitware/SiteView/commit/c4c0797d0f259b8f240574c33aaa99b7683029d3))
+
+- **radius**: Km to degree conversion
+  ([`1624415`](https://github.com/Kitware/SiteView/commit/162441531f40ebb27c5569c2ead9779dd1ab1470))
+
+
 ## v1.1.1 (2026-09-15)
 
 ### Bug Fixes
