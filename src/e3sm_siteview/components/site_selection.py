@@ -27,8 +27,8 @@ class CoordinatePreview(html.Div):
                         "`left: ${region[0]}%;top:${region[1]}%;width:${region[2]}%;height:${region[3]}%;`",
                     ),
                 )
-                html.Div(classes="coord-equator")
-                html.Div(classes="coord-meridian")
+                # html.Div(classes="coord-equator")
+                # html.Div(classes="coord-meridian")
                 html.Div(
                     classes="coord-radius",
                     style=(
