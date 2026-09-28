@@ -143,3 +143,7 @@ class E3SMAnalyser(TrameComponent):
     async def _add_panel(self, panel_id, label, template_name):
         # print("_add_panel", panel_id, label, template_name)
         self.ctx.views_container.add_panel(panel_id, label, template_name)
+
+    @property
+    def analyses(self):
+        return self._analysis.values()
