@@ -96,6 +96,9 @@ class GlobalParameters(dataclass.StateDataModel):
     readers = dataclass.ServerOnly(set, set)
     variables_2d = dataclass.Sync(list[Variable], list, has_dataclass=True)
     variables_3d = dataclass.Sync(list[Variable], list, has_dataclass=True)
+    # General workflow
+    active_page = dataclass.Sync(str, "welcome")  # welcome, site, fields, viz
+    data_loaded = dataclass.Sync(bool, False)
     # Time
     time_values = dataclass.Sync(list[int], list)
     time_index = dataclass.Sync(int, 0)
@@ -108,6 +111,7 @@ class GlobalParameters(dataclass.StateDataModel):
     col_ids_str = dataclass.Sync(str, "[]")
     n_cols = dataclass.Sync(int, 0)
     # 3D Viz controls
+
     active_viz = dataclass.Sync(list[str], ["volume"])
     cloud = dataclass.Sync(CloudControls, has_dataclass=True)
     surface = dataclass.Sync(ColorByControls, has_dataclass=True)
