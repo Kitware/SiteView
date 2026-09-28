@@ -70,6 +70,9 @@ class ColumnHeatMap(TrameComponent):
 
         return list(range(tdim.size))
 
+    def refresh_data(self):
+        self._compute_heatmap()
+
     def _compute_heatmap(self, *_):
         field = self.ctx.setup.surface_chart.color_by
         col_id = self.ctx.setup.surface_chart.column
