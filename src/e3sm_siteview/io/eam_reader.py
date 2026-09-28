@@ -39,6 +39,7 @@ class DimMeta:
         self.size = size
         self.long_name = None
         self.units = None
+        self.calendar = None
         self.data = data  # Store the actual dimension coordinate values
 
     def __getitem__(self, key):
@@ -50,7 +51,7 @@ class DimMeta:
         setattr(self, key, value)
 
     def update_from_variable(self, var_info):
-        """Update metadata from netCDF variable info - only long_name and units."""
+        """Update metadata from netCDF variable info - long_name, units and calendar."""
         try:
             self.long_name = var_info.getncattr("long_name")
         except AttributeError:
@@ -58,6 +59,11 @@ class DimMeta:
 
         try:
             self.units = var_info.getncattr("units")
+        except AttributeError:
+            pass
+
+        try:
+            self.calendar = var_info.getncattr("calendar")
         except AttributeError:
             pass
 
