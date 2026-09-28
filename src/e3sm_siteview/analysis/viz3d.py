@@ -99,6 +99,9 @@ class Viz3D(TrameComponent):
         self._projections.append(proj)
         return proj
 
+    def refresh_data(self):
+        self._need_render()
+
     @controller.add("reset_camera")
     def _reset_camera(self):
         x_rad = math.radians(self.ctx.setup.center[0])
@@ -300,7 +303,7 @@ class Viz3D(TrameComponent):
         while self._subscriptions:
             self._subscriptions.pop()()
 
-    def _need_render(self, _):
+    def _need_render(self, *_):
         self.view_handler.update()
 
     def _on_z_scale_change(self, zscale):

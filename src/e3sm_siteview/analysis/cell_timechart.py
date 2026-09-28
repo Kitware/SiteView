@@ -39,6 +39,9 @@ class CellTimeChart(TrameComponent):
     def name(self):
         return self._id
 
+    def refresh_data(self):
+        self._compute_line_plots()
+
     def _subscribe(self, obj, watch, callback, eager=False, sync=False):
         self._subscriptions.append(obj.watch(watch, callback, eager=eager, sync=sync))
 
