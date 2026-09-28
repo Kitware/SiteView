@@ -1,5 +1,6 @@
 import json
 
+import netCDF4
 import numpy as np
 import plotly.graph_objects as go
 from trame.app import TrameComponent
@@ -53,6 +54,22 @@ class ColumnHeatMap(TrameComponent):
     def _sync_color_by(self, color_by):
         self.ctx.setup.surface_chart.color_by = color_by
 
+    def _time_labels(self):
+        tdim = self.single_column_reader.GetDimensions().get("time")
+        if tdim is None:
+            return [0]
+
+        if tdim.data is not None and tdim.units:
+            try:
+                dates = netCDF4.num2date(
+                    tdim.data, tdim.units, calendar=tdim.calendar or "standard"
+                )
+                return [d.strftime("%Y-%m-%d %H:%M") for d in dates]
+            except (ValueError, TypeError):
+                pass
+
+        return list(range(tdim.size))
+
     def _compute_heatmap(self, *_):
         field = self.ctx.setup.surface_chart.color_by
         col_id = self.ctx.setup.surface_chart.column
@@ -68,9 +85,10 @@ class ColumnHeatMap(TrameComponent):
         select_arrays.DisableAllArrays()
         select_arrays.EnableArray(field)
 
+        time_labels = self._time_labels()
         series = []
         levels = None
-        for t in range(self.ctx.setup.time_index_max):
+        for t in range(len(time_labels)):
             col.SetSlicing(json.dumps({"time": t}))
             col.Update()
             table = col.GetOutputDataObject(0)
@@ -93,17 +111,34 @@ class ColumnHeatMap(TrameComponent):
         fig = go.Figure(
             data=go.Heatmap(
                 z=series.T,
+                x=time_labels,
                 y=levels,
                 colorscale="Viridis",
+                hovertemplate=(
+                    f"time: %{{x}}<br>lev: %{{y}}<br>{field}: %{{z}}<extra></extra>"
+                ),
             )
         )
+        # Only label a handful of time steps to keep the axis readable
+        tick_step = max(1, len(time_labels) // 6)
+        tick_vals = time_labels[::tick_step]
+        tick_text = [str(v).replace(" ", "<br>") for v in tick_vals]
+
         fig.update_layout(
-            xaxis_title="time",
-            yaxis={"title": field, "autorange": "reversed"},
+            title={"text": field, "x": 0.5, "xanchor": "center"},
+            xaxis={
+                "title": "time",
+                "side": "bottom",
+                "type": "category",
+                "tickmode": "array",
+                "tickvals": tick_vals,
+                "ticktext": tick_text,
+                "tickangle": 0,
+            },
+            yaxis={"autorange": "reversed"},
             showlegend=False,
-            margin={"b": 0, "l": 0, "r": 0, "t": 0},
+            margin={"b": 60, "l": 0, "r": 0, "t": 30},
         )
-        fig.update_xaxes(side="top")
 
         with self.state:
             self.update_figure(fig)
