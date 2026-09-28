@@ -59,9 +59,9 @@ class CoordinatePreview(html.Div):
             self.state.site_marker_diameter = int(0.5 + max(2 * base, 8))
 
 
-class SiteSelection(html.Div):
+class SiteSelection(v3.VRow):
     def __init__(self, next_fn, **_):
-        super().__init__(classes="step-pane pa-6")
+        super().__init__(classes="pa-6 align-center")
         self.server.enable_module(module)
 
         with self:
@@ -163,6 +163,7 @@ class SiteSelection(html.Div):
                             click=next_fn,
                         )
 
+                with v3.VCol():
                     CoordinatePreview()
 
     @change("site_selected")
