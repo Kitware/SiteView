@@ -100,18 +100,20 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
 
         Prefers the ilev field array; if only lev is present, derives interfaces
         by averaging adjacent midpoints and extrapolating the top/bottom.
+        The result is returned in reversed order (bottom first, top last).
         """
         fd = table.GetFieldData()
         ilev = fd.GetAbstractArray(cls.ILEV)
         if ilev is not None:
-            return numpy_support.vtk_to_numpy(ilev).reshape(-1).astype(np.float64)
+            iface = numpy_support.vtk_to_numpy(ilev).reshape(-1).astype(np.float64)
+            return iface[::-1].copy()
         lev = fd.GetAbstractArray(cls.LEV)
         if lev is not None:
             levp = numpy_support.vtk_to_numpy(lev).reshape(-1).astype(np.float64)
             mids = 0.5 * (levp[:-1] + levp[1:])
             top = levp[0] - (mids[0] - levp[0])
             bot = levp[-1] + (levp[-1] - mids[-1])
-            return np.concatenate([[top], mids, [bot]])
+            return np.concatenate([[top], mids, [bot]])[::-1].copy()
         return None
 
     # -- execution ------------------------------------------------------------
