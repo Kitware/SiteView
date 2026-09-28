@@ -4,7 +4,7 @@ from trame.widgets import colormaps, dockview, plotly, rca
 from trame.widgets import vuetify3 as v3
 
 from e3sm_siteview.assets import ASSETS
-from e3sm_siteview.components import field_selection, footer, site_selection
+from e3sm_siteview.components import field_selection, footer, site_selection, welcome
 from e3sm_siteview.viewer import create_viewers
 
 
@@ -33,17 +33,17 @@ class E3smSiteView(TrameApp):
                         absolute=True,
                         model_value=("controls.active_page === 'welcome'",),
                         persistent=True,
+                        scrollable=True,
                     ):
-                        with v3.VCard():
-                            v3.VCardTitle("Welcome to SiteView")
-                            v3.VDivider()
+                        welcome.Welcome("controls.active_page = 'site'")
 
                     with v3.VDialog(
                         absolute=True,
                         model_value=("controls.active_page === 'site'",),
                         persistent=True,
+                        scrollable=True,
                     ):
-                        with v3.VCard():
+                        with v3.VCard(rounded="lg"):
                             v3.VCardTitle("Select your site location and region size")
                             v3.VDivider()
                             site_selection.SiteSelection(self._select_region)
@@ -52,8 +52,9 @@ class E3smSiteView(TrameApp):
                         absolute=True,
                         persistent=True,
                         model_value=("controls.active_page === 'fields'",),
+                        scrollable=True,
                     ):
-                        with v3.VCard():
+                        with v3.VCard(rounded="lg"):
                             v3.VCardTitle("Select fields to load")
                             v3.VDivider()
                             field_selection.FieldSelection(self._load_fields)
