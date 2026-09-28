@@ -34,6 +34,7 @@ class E3smSiteView(TrameApp):
                         model_value=("controls.active_page === 'welcome'",),
                         persistent=True,
                         scrollable=True,
+                        max_width="640",
                     ):
                         welcome.Welcome("controls.active_page = 'site'")
 
