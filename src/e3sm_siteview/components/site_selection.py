@@ -178,7 +178,7 @@ class SiteSelection(html.Div):
             site_radius = 1
 
         self.ctx.setup.radius_deg = site_radius * (
-            1.0 if site_radius_unit == "deg" else 111.111
+            1.0 if site_radius_unit == "deg" else 1.0 / 111.111
         )
 
     @change("site_lat", "site_lon")
