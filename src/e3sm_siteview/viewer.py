@@ -44,6 +44,17 @@ def create_viewers(server):
         w = (lon_max - lon_min) / 360
         x_percent.append((0.5 + o, w))
 
+    # make sure we go left to right
+    # x_percent = [(origin_percent, width_percent), ...]
+    x_percent.sort()
+    if len(x_percent) == 2 and x_percent[0][0] + x_percent[0][1] == x_percent[1][0]:
+        # remove split, just make 1 region
+        x_percent = [(x_percent[0][0], x_percent[0][1] + x_percent[1][1])]
+
+    if len(x_percent) == 1 and x_percent[0][1] == 1:
+        # Full region => no highlight
+        x_percent = []
+
     server.state.data_regions = [
         (lon_o * 100, lat_o, lon_w * 100, lat_h) for lon_o, lon_w in x_percent
     ]
