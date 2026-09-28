@@ -2,6 +2,10 @@ from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 
 
+def TooltipButton(tooltip, **kwargs):
+    return v3.VBtn(v_tooltip_top=f"{tooltip}", **kwargs)
+
+
 class GeneralControls(v3.VFooter):
     def __init__(self):
         super().__init__(app=True)
@@ -16,15 +20,18 @@ class GeneralControls(v3.VFooter):
                 classes="mr-4",
                 mandatory=True,
             ):
-                v3.VBtn(
+                TooltipButton(
+                    "'Site selection'",
                     icon="mdi-map-marker-radius",
                     value="site",
                 )
-                v3.VBtn(
+                TooltipButton(
+                    "'Fields selection'",
                     icon="mdi-format-list-checks",
                     value="fields",
                 )
-                v3.VBtn(
+                TooltipButton(
+                    "'Visualization'",
                     icon="mdi-lightbulb-on-outline",
                     value="viz",
                 )
@@ -42,7 +49,8 @@ class GeneralControls(v3.VFooter):
                     classes="mr-4",
                     mandatory=True,
                 ):
-                    v3.VBtn(
+                    TooltipButton(
+                        "v[2]",
                         v_for="v, i in controls.available_analysis",
                         key="i",
                         icon=("v[1]",),
@@ -58,44 +66,64 @@ class GeneralControls(v3.VFooter):
                     divided=True,
                     classes="mr-4",
                 ):
-                    v3.VBtn(icon="mdi-weather-cloudy", value="cloud")
-                    v3.VBtn(icon="mdi-arrow-expand-vertical", value="zscale")
-                    # v3.VBtn(icon="mdi-layers-outline", value="surface")
-                    v3.VBtn(icon="mdi-cube-outline", value="volume")
-                    v3.VBtn(icon="mdi-altimeter", value="hslice")
-                    v3.VBtn(icon="mdi-flip-horizontal", value="vslice")
-                    v3.VBtn(icon="mdi-magnify-scan", value="find_data")
-                    v3.VBtn(icon="mdi-sort", value="column")
-                    v3.VBtn(icon="mdi-map-marker-plus", value="probes")
+                    TooltipButton("'Clouds'", icon="mdi-weather-cloudy", value="cloud")
+                    TooltipButton(
+                        "'Vertical scaling'",
+                        icon="mdi-arrow-expand-vertical",
+                        value="zscale",
+                    )
+                    # TooltipButton("Surface", icon="mdi-layers-outline", value="surface")
+                    TooltipButton(
+                        "'Volume rendering'", icon="mdi-cube-outline", value="volume"
+                    )
+                    TooltipButton(
+                        "'Horizontal slice'", icon="mdi-altimeter", value="hslice"
+                    )
+                    TooltipButton(
+                        "'Vertical slice'", icon="mdi-flip-horizontal", value="vslice"
+                    )
+                    TooltipButton(
+                        "'Find data'", icon="mdi-magnify-scan", value="find_data"
+                    )
+                    TooltipButton("'Column Cropping'", icon="mdi-sort", value="column")
+                    TooltipButton(
+                        "'Probes'", icon="mdi-map-marker-plus", value="probes"
+                    )
 
                 with v3.VBtnToggle(
                     density="comfortable",
                     border=True,
                     divided=True,
                 ):
-                    v3.VBtn(
+                    TooltipButton(
+                        "'First time step'",
                         icon="mdi-step-backward-2",
                         click="controls.time_index = 0",
                     )
-                    v3.VBtn(
+                    TooltipButton(
+                        "'Previous time step'",
                         icon="mdi-step-backward",
                         click="controls.time_index > 0 && controls.time_index--",
                     )
-                    v3.VBtn(
+                    TooltipButton(
+                        "'Stop animation'",
                         icon="mdi-stop",
                         v_if="controls.time_animating",
                         click="controls.time_animating = false",
                     )
-                    v3.VBtn(
+                    TooltipButton(
+                        "'Play animation'",
                         icon="mdi-play",
                         v_else=True,
                         click="controls.time_animating = true",
                     )
-                    v3.VBtn(
+                    TooltipButton(
+                        "'Next time step'",
                         icon="mdi-step-forward",
                         click="controls.time_index < controls.time_index_max && controls.time_index++",
                     )
-                    v3.VBtn(
+                    TooltipButton(
+                        "'Last time step'",
                         icon="mdi-step-forward-2",
                         click="controls.time_index = controls.time_index_max",
                     )

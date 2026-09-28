@@ -130,9 +130,9 @@ class GlobalParameters(dataclass.StateDataModel):
     available_analysis = dataclass.Sync(
         list,
         [
-            ("viz", "mdi-earth"),
-            ("columnHeatMap", "mdi-view-grid-compact"),
-            ("cellTimeChart", "mdi-chart-line"),
+            ("viz", "mdi-earth", "3D view"),
+            ("columnHeatMap", "mdi-view-grid-compact", "Column heat map"),
+            ("cellTimeChart", "mdi-chart-line", "Cell time chart"),
         ],
     )
 
