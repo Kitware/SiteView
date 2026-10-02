@@ -31,6 +31,45 @@ class TopRightFloatControls(v3.VCard):
         super().__init__(style="position:absolute;right:1rem;top:1rem;z-index:100;")
 
 
+class CameraFocus(html.Div):
+    def __init__(self, reset_camera):
+        super().__init__(classes="d-flex flex-column align-center")
+        is_earth = "controls.camera_focus === 'earth'"
+        with self:
+            with v3.VTooltip(text="Reset camera", location="start"):
+                with v3.Template(v_slot_activator="{ props }"):
+                    v3.VBtn(
+                        v_bind="props",
+                        icon="mdi-crop-free",
+                        classes="rounded",
+                        density="comfortable",
+                        variant="plain",
+                        click=reset_camera,
+                    )
+            v3.VDivider()
+            with v3.VTooltip(
+                text=(
+                    f"{is_earth} ? 'Earth focus: rotate around earth center' "
+                    ": 'Data focus: rotate around data bottom'",
+                ),
+                location="start",
+            ):
+                with v3.Template(v_slot_activator="{ props }"):
+                    v3.VBtn(
+                        v_bind="props",
+                        icon=(
+                            f"{is_earth} ? 'mdi-earth' "
+                            ": 'mdi-image-filter-center-focus'",
+                        ),
+                        classes="rounded",
+                        density="comfortable",
+                        variant="plain",
+                        click=(
+                            f"controls.camera_focus = {is_earth} ? 'data' : 'earth'"
+                        ),
+                    )
+
+
 class BaseToolbar(v3.VCard):
     def __init__(self, keys, icon):
         super().__init__(

@@ -6,9 +6,10 @@ from trame.dataclasses.colormaps import ColormapConfig
 from trame.decorators import controller
 from trame.ui.html import DivLayout
 from trame.widgets import colormaps, html, rca
-from trame.widgets import vuetify3 as v3
+from vtkmodules.vtkCommonCore import vtkMath
 from vtkmodules.vtkCommonDataModel import vtkDataObject, vtkPlane
 from vtkmodules.vtkCommonMath import vtkMatrix4x4
+from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkFiltersCore import (
     vtk3DLinearGridCrinkleExtractor,
     vtkAppendPolyData,
@@ -24,7 +25,7 @@ from vtkmodules.vtkFiltersSources import (
     vtkSphereSource,
     vtkTexturedSphereSource,
 )
-from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa: F401
+from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera
 from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
 from vtkmodules.vtkIOImage import vtkJPEGReader
 from vtkmodules.vtkIOXML import vtkXMLPolyDataReader
@@ -55,6 +56,81 @@ from e3sm_siteview.io import (
 NAME = "viz"
 
 CAMERA = vtkCamera()
+
+EARTH_AXIS = (0, 1, 0)
+
+
+def _rotate_camera(camera, angle, axis, center):
+    """Rotate camera around an axis going through center"""
+    transform = vtkTransform()
+    transform.Translate(center)
+    transform.RotateWXYZ(angle, axis)
+    transform.Translate(*(-v for v in center))
+    camera.position = transform.TransformPoint(camera.position)
+    camera.focal_point = transform.TransformPoint(camera.focal_point)
+
+
+def create_north_up_interactor_style(get_rotation_center):
+    """
+    Trackball camera style where left-drag rotates the camera around
+    an axis parallel to the earth rotation axis going through
+    get_rotation_center() (horizontal motion) and tilts it toward the
+    poles (vertical motion) while keeping north up.
+    Middle/right buttons and wheel keep their default pan/zoom behavior.
+    """
+    style = vtkInteractorStyleTrackballCamera()
+    state = {"rotating": False}
+
+    def on_left_press(*_):
+        interactor = style.GetInteractor()
+        style.FindPokedRenderer(*interactor.GetEventPosition())
+        if style.GetCurrentRenderer() is None:
+            return
+        state["rotating"] = True
+
+    def on_left_release(*_):
+        state["rotating"] = False
+
+    def on_mouse_move(*_):
+        if not state["rotating"]:
+            style.OnMouseMove()
+            return
+
+        interactor = style.GetInteractor()
+        renderer = style.GetCurrentRenderer()
+        camera = renderer.active_camera
+        x, y = interactor.GetEventPosition()
+        last_x, last_y = interactor.GetLastEventPosition()
+        width, height = renderer.GetSize()
+        center = get_rotation_center()
+
+        # Spin around the earth rotation axis
+        azimuth = -180.0 * (x - last_x) / max(width, 1)
+        _rotate_camera(camera, azimuth, EARTH_AXIS, center)
+
+        # Tilt toward the poles without going over them
+        elevation = 180.0 * (y - last_y) / max(height, 1)
+        dop = camera.GetDirectionOfProjection()
+        right = [0, 0, 0]
+        vtkMath.Cross(dop, EARTH_AXIS, right)
+        if vtkMath.Normalize(right) > 0:
+            pole_angle = math.degrees(
+                math.acos(max(-1.0, min(1.0, vtkMath.Dot(dop, EARTH_AXIS))))
+            )
+            if 1.0 < pole_angle - elevation < 179.0:
+                _rotate_camera(camera, elevation, right, center)
+
+        camera.view_up = EARTH_AXIS
+        camera.OrthogonalizeViewUp()
+        if style.GetAutoAdjustCameraClippingRange():
+            renderer.ResetCameraClippingRange()
+        interactor.Render()
+
+    style.AddObserver("LeftButtonPressEvent", on_left_press)
+    style.AddObserver("LeftButtonReleaseEvent", on_left_release)
+    style.AddObserver("MouseMoveEvent", on_mouse_move)
+
+    return style
 
 
 class Viz3D(TrameComponent):
@@ -116,18 +192,36 @@ class Viz3D(TrameComponent):
     def refresh_data(self):
         self._need_render()
 
-    @controller.add("reset_camera")
-    def _reset_camera(self):
+    def _data_anchor(self):
+        """Point on the earth surface at the bottom center of the data"""
         x_rad = math.radians(self.ctx.setup.center[0])
         y_rad = math.radians(self.ctx.setup.center[1])
         cos_y_rad = math.cos(y_rad)
         xs = EARTH_RADIUS * math.sin(x_rad) * cos_y_rad
         ys = EARTH_RADIUS * math.sin(y_rad)
         zs = EARTH_RADIUS * math.cos(x_rad) * cos_y_rad
-        self.renderer.active_camera.focal_point = (xs, ys, zs)
-        self.renderer.active_camera.position = (xs * 1000, ys * 1000, zs * 1000)
-        self.renderer.active_camera.view_up = (0, 1, 0)
-        self.renderer.ResetCamera(self.outline_actor.bounds)
+        return (xs, ys, zs)
+
+    def _rotation_center(self):
+        if self.ctx.setup.camera_focus == "earth":
+            return (0, 0, 0)
+        return self._data_anchor()
+
+    @controller.add("reset_camera")
+    def _reset_camera(self):
+        xs, ys, zs = self._data_anchor()
+        camera = self.renderer.active_camera
+        camera.position = (xs * 1000, ys * 1000, zs * 1000)
+        camera.view_up = EARTH_AXIS
+        if self.ctx.setup.camera_focus == "earth":
+            camera.focal_point = (0, 0, 0)
+            camera.OrthogonalizeViewUp()
+            r = EARTH_RADIUS
+            self.renderer.ResetCamera(-r, r, -r, r, -r, r)
+        else:
+            camera.focal_point = (xs, ys, zs)
+            camera.OrthogonalizeViewUp()
+            self.renderer.ResetCamera(self.outline_actor.bounds)
 
         if self.view_handler:
             self.view_handler.update()
@@ -140,7 +234,8 @@ class Viz3D(TrameComponent):
 
         renderWindowInteractor = vtkRenderWindowInteractor()
         renderWindowInteractor.SetRenderWindow(renderWindow)
-        renderWindowInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
+        self.interactor_style = create_north_up_interactor_style(self._rotation_center)
+        renderWindowInteractor.SetInteractorStyle(self.interactor_style)
 
         self.render_window = renderWindow
         self.renderer = renderer
@@ -422,6 +517,7 @@ class Viz3D(TrameComponent):
         self._subscribe(
             self.ctx.setup.zscale, ["scale"], self._on_z_scale_change, eager=True
         )
+        self._subscribe(self.ctx.setup, ["camera_focus"], self._on_camera_focus_change)
         self._subscribe(self.colormap_config, ["mapper_change"], self._need_render)
         self.ctrl.update_color_range.add(self.colormap_config.update_color_range)
 
@@ -437,6 +533,9 @@ class Viz3D(TrameComponent):
             projection_filter.SetAltitudeScale(zscale)
 
         self.view_handler.update()
+
+    def _on_camera_focus_change(self, *_):
+        self._reset_camera()
 
     def _on_region_change(self, center, radius_deg):
         self.level_cylinder.SetCenter(center[0], center[1])
@@ -532,14 +631,8 @@ class Viz3D(TrameComponent):
                 )
                 self.ctrl.render.add(self.view_handler.update)
 
-                with controls.TopRightFloatControls():
-                    v3.VBtn(
-                        icon="mdi-crop-free",
-                        classes="rounded",
-                        density="comfortable",
-                        variant="plain",
-                        click=self.ctrl.reset_camera,
-                    )
+                with controls.Controls(), controls.TopRightFloatControls():
+                    controls.CameraFocus(reset_camera=self.ctrl.reset_camera)
 
                 with controls.Controls(), controls.TopLeftFloatControls():
                     controls.ZScale()
