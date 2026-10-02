@@ -402,6 +402,11 @@ class Viz3D(TrameComponent):
             >> earth_marker_mapper
         )
         earth_marker = vtkActor(mapper=earth_marker_mapper, texture=earth_texture)
+        # Mostly ambient lighting so the texture stays bright on all sides
+        # while keeping a bit of shading for the 3D feel
+        earth_marker.property.ambient = 0.6
+        earth_marker.property.diffuse = 0.5
+        earth_marker.property.specular = 0
         # Sphere source has poles on Z with lon=-180 on +X; align it with
         # EAMProject (north on +Y, lon=0 on +Z, lon=90 on +X)
         marker_matrix = vtkMatrix4x4()
