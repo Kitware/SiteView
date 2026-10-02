@@ -85,6 +85,9 @@ class GeneralControls(v3.VFooter):
                     TooltipButton(
                         "'Find data'", icon="mdi-magnify-scan", value="find_data"
                     )
+                    TooltipButton(
+                        "'Histogram'", icon="mdi-chart-histogram", value="histogram"
+                    )
                     TooltipButton("'Column Cropping'", icon="mdi-sort", value="column")
                     TooltipButton(
                         "'Probes'", icon="mdi-map-marker-plus", value="probes"

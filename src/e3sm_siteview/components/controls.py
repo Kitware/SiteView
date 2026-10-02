@@ -285,6 +285,56 @@ class FindData(BaseToolbar):
         self.server.controller.apply_find_data()
 
 
+class Histogram(BaseToolbar):
+    def __init__(self):
+        super().__init__(keys=["histogram"], icon="mdi-chart-histogram")
+        with self:
+            with v3.VCol(
+                v_show="controls.histogram.show",
+                classes="border-s pa-0",
+                style="width: 370px",
+            ) as container:
+                container.add_child(
+                    '<trame-plotly v-if="controls.histogram.figure.data"'
+                    ' :data="controls.histogram.figure.data"'
+                    ' :layout="controls.histogram.figure.layout"'
+                    ' :displayModeBar="false" :displaylogo="false"'
+                    ' style="height: 200px;" />'
+                )
+                with html.Div(classes="d-flex align-center pr-2 pb-2"):
+                    v3.VSlider(
+                        v_model="controls.histogram.bins",
+                        min=5,
+                        max=200,
+                        step=5,
+                        density="compact",
+                        hide_details=True,
+                        prepend_icon="mdi-chart-bar",
+                        thumb_label=True,
+                        classes="px-2",
+                    )
+                    with v3.VBtnToggle(
+                        v_model="controls.histogram.discard",
+                        multiple=True,
+                        density="compact",
+                        variant="outlined",
+                        divided=True,
+                        color="primary",
+                    ):
+                        v3.VBtn(
+                            "Min",
+                            value="min",
+                            size="small",
+                            v_tooltip_bottom="'Discard min bin'",
+                        )
+                        v3.VBtn(
+                            "Max",
+                            value="max",
+                            size="small",
+                            v_tooltip_bottom="'Discard max bin'",
+                        )
+
+
 class CropColumn(BaseToolbar):
     def __init__(self):
         super().__init__(keys=["column"], icon="mdi-sort")
