@@ -12,6 +12,15 @@ from vtkmodules.vtkFiltersGeneral import vtkTransformFilter
 from e3sm_siteview.constants import FIELDS_METADATA
 
 
+def format_lat_lon(lon, lat):
+    lon = (float(lon) + 180) % 360 - 180
+    lat = float(lat)
+    return (
+        f"{abs(lat):.2f}°{'N' if lat >= 0 else 'S'}, "
+        f"{abs(lon):.2f}°{'E' if lon >= 0 else 'W'}"
+    )
+
+
 class Variable(dataclass.StateDataModel):
     name = dataclass.Sync(str)
     selected = dataclass.Sync(bool, False)
@@ -111,6 +120,7 @@ class GlobalParameters(dataclass.StateDataModel):
     radius_deg = dataclass.Sync(float, 1.0)
     center = dataclass.Sync(tuple[float, float, float], (0, 0, 0))
     col_ids_str = dataclass.Sync(str, "[]")
+    col_items = dataclass.Sync(list, list)  # [{title: "lat, lon", value: col_id}]
     n_cols = dataclass.Sync(int, 0)
     # 3D Viz controls
     camera_focus = dataclass.Sync(str, "data")  # data, earth
@@ -210,12 +220,16 @@ class GlobalParameters(dataclass.StateDataModel):
     def apply_region(self, radius_deg, center):
         self.locator.FindPointsWithinRadius(radius_deg, center, self.col_ids)
         self.col_ids.Sort()
-        col_id = numpy_support.vtk_to_numpy(
-            self.locator.GetDataSet().GetPointData().GetArray("col_id")
-        )
-        selected_ids = [
-            int(col_id[self.col_ids.GetId(i)])
-            for i in range(self.col_ids.GetNumberOfIds())
+        dataset = self.locator.GetDataSet()
+        col_id = numpy_support.vtk_to_numpy(dataset.GetPointData().GetArray("col_id"))
+        points = numpy_support.vtk_to_numpy(dataset.GetPoints().GetData())
+        point_ids = [
+            self.col_ids.GetId(i) for i in range(self.col_ids.GetNumberOfIds())
+        ]
+        selected_ids = [int(col_id[pid]) for pid in point_ids]
+        self.col_items = [
+            {"title": format_lat_lon(*points[pid][:2]), "value": int(col_id[pid])}
+            for pid in point_ids
         ]
         self.col_ids_str = json.dumps(selected_ids)
         self.n_cols = len(selected_ids)

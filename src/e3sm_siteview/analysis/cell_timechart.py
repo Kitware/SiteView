@@ -86,6 +86,7 @@ class CellTimeChart(TrameComponent):
                         n_array[idx][altitude_idx]
                     )
 
+        labels = {item["value"]: item["title"] for item in self.ctx.setup.col_items}
         t_array = np.array(range(self.ctx.setup.time_index_max + 1))
         figs = []
         for field, cols in data.items():
@@ -95,7 +96,12 @@ class CellTimeChart(TrameComponent):
             for col, values in cols.items():
                 array = np.array(values)
                 fig.add_trace(
-                    go.Scatter(x=t_array, y=array, name=str(col), mode="lines")
+                    go.Scatter(
+                        x=t_array,
+                        y=array,
+                        name=labels.get(col, str(col)),
+                        mode="lines",
+                    )
                 )
                 y0, y1 = min_max(array, y0, y1)
 
@@ -159,7 +165,7 @@ class CellTimeChart(TrameComponent):
                     with v3.VSelect(
                         prepend_inner_icon="mdi-map-marker-outline",
                         v_model="global.line_chart.columns",
-                        items=("JSON.parse(global.col_ids_str)",),
+                        items=("global.col_items",),
                         density="compact",
                         hide_details=True,
                         variant="flat",
