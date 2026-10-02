@@ -1,12 +1,16 @@
 import math
 
+import numpy as np
 import plotly.colors
+import plotly.graph_objects as go
 import vtkmodules.vtkRenderingOpenGL2  # noqa: F401
 from trame.app import TrameComponent
 from trame.dataclasses.colormaps import ColormapConfig
 from trame.decorators import controller
 from trame.ui.html import DivLayout
 from trame.widgets import colormaps, html, rca
+from trame_client.encoders.numpy import encode
+from vtkmodules.util import numpy_support
 from vtkmodules.vtkCommonCore import vtkMath
 from vtkmodules.vtkCommonDataModel import vtkDataObject, vtkPlane
 from vtkmodules.vtkCommonMath import vtkMatrix4x4
@@ -159,6 +163,7 @@ class Viz3D(TrameComponent):
         self._id = next(ANALYSIS_ID)
         self.view_handler = None
         self._find_data_valid = False
+        self._histogram_key = None
         self._projections = []
         self._subscriptions = []
 
@@ -211,7 +216,97 @@ class Viz3D(TrameComponent):
         return proj
 
     def refresh_data(self):
+        self._update_histogram()
         self._need_render()
+
+    def _visible_data_array(self):
+        """Cell array of the color_by field for what is shown in the 3D view"""
+        color_by = self.ctx.setup.volume.color_by
+        if not color_by:
+            return None
+
+        if self.find_data_actor.visibility:
+            self.find_data_threshold.Update()
+            ds = self.find_data_threshold.GetOutputDataObject(0)
+            return ds.GetCellData().GetArray(color_by)
+
+        return self.get_data_array()
+
+    def _update_histogram(self, *_):
+        if "histogram" not in self.ctx.setup.active_viz:
+            self._histogram_key = None
+            return
+
+        array = self._visible_data_array()
+        bins = self.ctx.setup.histogram.bins
+        discard = self.ctx.setup.histogram.discard
+        color_by = self.ctx.setup.volume.color_by
+        key = (
+            color_by,
+            bins,
+            tuple(sorted(discard)),
+            None if array is None else (id(array), array.GetMTime()),
+        )
+        if key == self._histogram_key:
+            return
+        self._histogram_key = key
+
+        values = np.array([])
+        if array is not None:
+            values = numpy_support.vtk_to_numpy(array).ravel()
+            values = values[np.isfinite(values)]
+
+        if values.size == 0:
+            self.ctx.setup.histogram.figure = {}
+            return
+
+        counts, edges = np.histogram(values, bins=bins)
+        start = 1 if "min" in discard else 0
+        end = bins - 1 if "max" in discard else bins
+        counts = counts[start:end]
+        edges = edges[start : end + 1]
+        if counts.size == 0:
+            self.ctx.setup.histogram.figure = {}
+            return
+
+        units = next(
+            (v.units for v in self.ctx.setup.variables_3d if v.name == color_by),
+            None,
+        )
+        units = f" {units}" if units else ""
+        percents = 100 * counts / values.size
+        fig = go.Figure(
+            data=go.Bar(
+                x=(edges[:-1] + edges[1:]) / 2,
+                y=counts,
+                width=np.diff(edges),
+                marker_color="#1f77b4",
+                customdata=np.column_stack((edges[:-1], edges[1:], percents)),
+                hovertemplate=(
+                    f"<b>{color_by}</b>: [%{{customdata[0]:.4g}}, "
+                    f"%{{customdata[1]:.4g}}]{units}<br>"
+                    "<b>Cells</b>: %{y:,} (%{customdata[2]:.1f}%)"
+                    f"<br><b>Total</b>: {values.size:,} cells"
+                    "<extra></extra>"
+                ),
+                hoverlabel={"font": {"size": 11}},
+            )
+        )
+        fig.update_layout(
+            title={
+                "text": f"{color_by} ({counts.sum()} cells)",
+                "x": 0.5,
+                "xanchor": "center",
+                "font": {"size": 12},
+            },
+            bargap=0,
+            showlegend=False,
+            margin={"b": 30, "l": 40, "r": 10, "t": 30},
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font={"size": 10},
+        )
+        self.ctx.setup.histogram.figure = encode(fig.to_plotly_json())
 
     def _data_anchor(self):
         """Point on the earth surface at the bottom center of the data"""
@@ -680,6 +775,12 @@ class Viz3D(TrameComponent):
             self._on_column_markers_change,
             eager=True,
         )
+        self._subscribe(
+            self.ctx.setup.histogram,
+            ["bins", "discard"],
+            self._update_histogram,
+            eager=True,
+        )
         self._subscribe(self.colormap_config, ["mapper_change"], self._need_render)
         self.ctrl.update_color_range.add(self.colormap_config.update_color_range)
 
@@ -754,11 +855,13 @@ class Viz3D(TrameComponent):
             self.volume_actor.visibility = 0
 
         self.ctrl.update_color_range.enable_empty()()
+        self._update_histogram()
         self.view_handler.update()
 
     def _on_volume_color_by_change(self, color_by):
         if color_by:
             self.colormap_config.set_data_array(color_by, self.get_data_array, "cell")
+        self._update_histogram()
         self.view_handler.update()
 
     def _on_column_height_change(self, altitude_range):
@@ -771,11 +874,13 @@ class Viz3D(TrameComponent):
             self.ctx.setup.hslice.altitude, altitude_range[1]
         )
         self.ctrl.update_color_range()
+        self._update_histogram()
         self.view_handler.update()
 
     def _on_column_slice_change(self, level):
         self.horizontal_slice.SetLevelRange(level, level)
         self.ctrl.update_color_range.enable_empty()()
+        self._update_histogram()
         self.view_handler.update()
 
     def _on_orientation_slice_change(self, heading):
@@ -788,6 +893,7 @@ class Viz3D(TrameComponent):
             0,
         )
         self.slice_v_plane.normal = (nx, ny, 0)
+        self._update_histogram()
         self.view_handler.update()
 
     def _on_cloud_change(self, threshold_by, threshold_value, opacity):
@@ -850,6 +956,7 @@ class Viz3D(TrameComponent):
                     controls.HorizontalSlice()
                     controls.VerticalSlice()
                     controls.FindData()
+                    controls.Histogram()
                     controls.CropColumn()
 
                 with controls.BottomCenterFloatControls():

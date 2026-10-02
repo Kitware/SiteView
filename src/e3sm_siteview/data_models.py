@@ -81,6 +81,13 @@ class FindDataControls(dataclass.StateDataModel):
         self.error = ""
 
 
+class HistogramControls(dataclass.StateDataModel):
+    show = dataclass.Sync(bool, True)
+    bins = dataclass.Sync(int, 50)
+    discard = dataclass.Sync(list[str], list)  # "min", "max" bins to hide
+    figure = dataclass.Sync(dict, dict)
+
+
 class ColumnControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
     altitude_range = dataclass.Sync(
@@ -141,6 +148,7 @@ class GlobalParameters(dataclass.StateDataModel):
     vslice = dataclass.Sync(VSliceControls, has_dataclass=True)
     hslice = dataclass.Sync(HSliceControls, has_dataclass=True)
     find_data = dataclass.Sync(FindDataControls, has_dataclass=True)
+    histogram = dataclass.Sync(HistogramControls, has_dataclass=True)
     column = dataclass.Sync(ColumnControls, has_dataclass=True)
     zscale = dataclass.Sync(ZScaleControls, has_dataclass=True)
     # Heatmap Chart controls
@@ -166,6 +174,7 @@ class GlobalParameters(dataclass.StateDataModel):
         self.vslice = VSliceControls(server)
         self.hslice = HSliceControls(server)
         self.find_data = FindDataControls(server)
+        self.histogram = HistogramControls(server)
         self.column = ColumnControls(server)
         self.surface_chart = DrappedChart(server)
         self.line_chart = CellTimeCharts(server)
