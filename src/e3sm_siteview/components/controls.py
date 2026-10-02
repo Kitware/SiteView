@@ -269,18 +269,20 @@ class FindData(BaseToolbar):
             v3.VTextField(
                 v_show="controls.find_data.show",
                 v_model="controls.find_data.formula",
-                hide_details=True,
+                hide_details="auto",
                 density="compact",
                 append_inner_icon="mdi-view-grid-plus-outline",
                 style="width: 370px",
                 placeholder="T >= 27",
                 variant="flat",
                 classes="border-e-thin border-s-thin",
+                error_messages=("controls.find_data.error",),
                 click_appendInner=self._apply_find_data,
+                keydown_enter=self._apply_find_data,
             )
 
     def _apply_find_data(self):
-        print("Perform a selection...")
+        self.server.controller.apply_find_data()
 
 
 class CropColumn(BaseToolbar):

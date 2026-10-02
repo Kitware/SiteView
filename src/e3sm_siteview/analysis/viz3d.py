@@ -14,6 +14,7 @@ from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkFiltersCore import (
     vtk3DLinearGridCrinkleExtractor,
     vtkAppendPolyData,
+    vtkArrayCalculator,
     vtkFeatureEdges,
     vtkPolyDataToUnstructuredGrid,
     vtkThreshold,
@@ -74,6 +75,9 @@ HEATMAP_COLUMN_COLOR = (255, 255, 255)
 LINE_CHART_COLORS = [
     plotly.colors.hex_to_rgb(c) for c in plotly.colors.qualitative.Plotly
 ]
+
+# Find data: cells where the formula evaluates to true (1)
+FIND_DATA_ARRAY = "__find_data__"
 
 
 def _rotate_camera(camera, angle, axis, center):
@@ -154,6 +158,7 @@ class Viz3D(TrameComponent):
         super().__init__(server)
         self._id = next(ANALYSIS_ID)
         self.view_handler = None
+        self._find_data_valid = False
         self._projections = []
         self._subscriptions = []
 
@@ -329,6 +334,37 @@ class Viz3D(TrameComponent):
             >> self.slice_v_mapper
         )
         self.colormap_config.register_mapper(self.slice_v_mapper)
+
+        # Find data
+        self.find_data_calculator = vtkArrayCalculator(
+            result_array_name=FIND_DATA_ARRAY
+        )
+        self.find_data_calculator.SetAttributeTypeToCellData()
+        self.find_data_threshold = vtkThreshold()
+        self.find_data_threshold.SetInputArrayToProcess(
+            0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_CELLS, FIND_DATA_ARRAY
+        )
+        self.find_data_threshold.SetThresholdFunction(vtkThreshold.THRESHOLD_UPPER)
+        self.find_data_threshold.SetUpperThreshold(0.5)
+        self.find_data_mapper = vtkDataSetMapper()
+        self.find_data_mapper.ScalarVisibilityOn()
+        self.find_data_mapper.SetColorModeToMapScalars()
+        self.find_data_mapper.SetScalarModeToUseCellFieldData()
+        self.find_data_actor = vtkActor(
+            mapper=self.find_data_mapper,
+            force_opaque=1,
+            visibility=0,
+        )
+        self.find_data_actor.property.edge_visibility = 1
+        self.renderer.AddActor(self.find_data_actor)
+        (
+            self.clean_volume
+            >> self.find_data_calculator
+            >> self.find_data_threshold
+            >> self._proj()
+            >> self.find_data_mapper
+        )
+        self.colormap_config.register_mapper(self.find_data_mapper)
 
         # Level cylinder
         self.level_cylinder = EAMLevelCylinder()
@@ -695,13 +731,15 @@ class Viz3D(TrameComponent):
         has_volume = "volume" in active_viz
         has_slice = "hslice" in active_viz or "vslice" in active_viz
         has_cloud = "cloud" in active_viz
-        has_inside = has_slice or has_cloud
+        has_find = "find_data" in active_viz and self._find_data_valid
+        has_inside = has_slice or has_cloud or has_find
 
         self.slice_h_actor.visibility = 0
         self.slice_v_actor.visibility = 0
         self.outline_actor.visibility = 0
         self.volume_actor.visibility = 0
         self.threshold_actor.visibility = 1 if has_cloud else 0
+        self.find_data_actor.visibility = 1 if has_find else 0
 
         if has_volume:
             self.volume_actor.visibility = 1
@@ -767,6 +805,27 @@ class Viz3D(TrameComponent):
         self.threshold.SetUpperThreshold(value)
         self.threshold_actor.property.opacity = opacity
         self.view_handler.update()
+
+    @controller.add("apply_find_data")
+    def _apply_find_data(self):
+        formula = self.ctx.setup.find_data.formula.strip()
+        self._find_data_valid = False
+
+        if formula:
+            self.clean_volume.Update()
+            calculator = self.find_data_calculator
+            calculator.RemoveAllVariables()
+            for name in self.clean_volume.GetOutputDataObject(0).cell_data:
+                calculator.AddScalarArrayName(name)
+            calculator.function = formula
+            calculator.Update()
+            ds = calculator.GetOutputDataObject(0)
+            if ds.GetCellData().GetArray(FIND_DATA_ARRAY) is None:
+                self.ctx.setup.find_data.error = "Invalid formula"
+            else:
+                self._find_data_valid = True
+
+        self._on_visibility_change(self.ctx.setup.active_viz)
 
     def _build_ui(self):
         with DivLayout(self.server, self.name, classes="h-100") as self.ui:
