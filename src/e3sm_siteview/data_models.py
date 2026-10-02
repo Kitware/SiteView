@@ -111,6 +111,7 @@ class GlobalParameters(dataclass.StateDataModel):
     col_ids_str = dataclass.Sync(str, "[]")
     n_cols = dataclass.Sync(int, 0)
     # 3D Viz controls
+    camera_focus = dataclass.Sync(str, "data")  # data, earth
 
     active_viz = dataclass.Sync(list[str], ["volume"])
     cloud = dataclass.Sync(CloudControls, has_dataclass=True)
