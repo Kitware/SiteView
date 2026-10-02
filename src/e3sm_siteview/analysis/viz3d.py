@@ -59,6 +59,11 @@ CAMERA = vtkCamera()
 
 EARTH_AXIS = (0, 1, 0)
 
+# Orientation marker site cylinder (textured sphere source has radius 0.5)
+SITE_MARKER_EARTH_RADIUS = 0.5
+SITE_MARKER_HEIGHT = 0.1
+SITE_MARKER_MIN_RADIUS = 0.03
+
 
 def _rotate_camera(camera, angle, axis, center):
     """Rotate camera around an axis going through center"""
@@ -428,9 +433,22 @@ class Viz3D(TrameComponent):
         rotation_axis_actor = vtkActor(mapper=rotation_axis_mapper)
         rotation_axis_actor.property.color = (0.9, 0.2, 0.2)
 
+        # Selected site: bright cylinder sticking out of the earth surface,
+        # placed by _update_site_marker() (cylinder source is along +Y)
+        self.site_marker_source = vtkCylinderSource(
+            height=SITE_MARKER_HEIGHT, resolution=24
+        )
+        site_marker_mapper = vtkDataSetMapper()
+        self.site_marker_source >> site_marker_mapper
+        self.site_marker_actor = vtkActor(mapper=site_marker_mapper)
+        self.site_marker_actor.property.color = (1, 0.9, 0)
+        self.site_marker_actor.property.lighting = 0
+        self._update_site_marker()
+
         earth_with_axis = vtkAssembly()
         earth_with_axis.AddPart(earth_marker)
         earth_with_axis.AddPart(rotation_axis_actor)
+        earth_with_axis.AddPart(self.site_marker_actor)
 
         self.orientation_widget = vtkOrientationMarkerWidget(
             orientation_marker=earth_with_axis,
@@ -441,6 +459,21 @@ class Viz3D(TrameComponent):
         self.orientation_widget.InteractiveOff()
 
         self._reset_camera()
+
+    def _update_site_marker(self):
+        """Place the orientation marker site cylinder at the selected region"""
+        lon, lat = self.ctx.setup.center[:2]
+        self.site_marker_source.radius = max(
+            SITE_MARKER_MIN_RADIUS,
+            SITE_MARKER_EARTH_RADIUS * math.radians(self.ctx.setup.radius_deg),
+        )
+        # Translate along +Y onto the surface, then tilt from the north pole
+        # down to the site latitude and spin to its longitude (EAMProject frame)
+        transform = vtkTransform()
+        transform.RotateY(lon)
+        transform.RotateX(90 - lat)
+        transform.Translate(0, SITE_MARKER_EARTH_RADIUS, 0)
+        self.site_marker_actor.user_transform = transform
 
     def _sync_level_labels(self, *_):
         self.level_cylinder_proj.Update()
@@ -540,6 +573,7 @@ class Viz3D(TrameComponent):
     def _on_region_change(self, center, radius_deg):
         self.level_cylinder.SetCenter(center[0], center[1])
         self.level_cylinder.SetRadius(radius_deg)
+        self._update_site_marker()
         self.view_handler.update()
 
     def _on_visibility_change(self, active_viz):
