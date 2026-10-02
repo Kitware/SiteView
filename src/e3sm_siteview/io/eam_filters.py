@@ -6,7 +6,7 @@ paraview-optional decorator shim.
 import numpy as np
 from vtkmodules.util import numpy_support, vtkConstants
 from vtkmodules.util.vtkAlgorithm import VTKPythonAlgorithmBase
-from vtkmodules.vtkCommonCore import vtkPoints
+from vtkmodules.vtkCommonCore import vtkPoints, vtkStringArray
 from vtkmodules.vtkCommonDataModel import (
     vtkCellArray,
     vtkPolyData,
@@ -266,5 +266,106 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
                 np.ascontiguousarray(cellvals.reshape(-1), dtype=np.float64),
                 vtkConstants.VTK_DOUBLE,
             )
+
+        return 1
+
+
+class EAMLevelCylinder(VTKPythonAlgorithmBase):
+    """Wireframe cylinder wrapping the vertical extent of an EAMColumnVolume.
+
+    Input is the (unprojected) column volume: points are (lon, lat, pressure).
+    Output is an unstructured grid in the same space, so it can go through
+    EAMProject like the volume:
+      * a circle of Radius degrees around Center (same lon/lat metric as the
+        column selection) at the bottom and top of the volume, plus one
+        circle per vertical split (NumberOfSplits even sections in pressure)
+      * one extra (cell-less) label point per circle, on the side facing the
+        equator (south for a northern Center, north for a southern one) at
+        Radius * (1 + LabelOffset) from the Center
+      * point data ``labels`` (string) holding the pressure of each circle,
+        set on its label point
+    """
+
+    def __init__(self):
+        super().__init__(
+            nInputPorts=1, nOutputPorts=1, outputType="vtkUnstructuredGrid"
+        )
+        self._center = (0.0, 0.0)
+        self._radius = 1.0
+        self._n_splits = 5
+        self._label_offset = 0.5
+        self._resolution = 64
+
+    def SetCenter(self, lon, lat):
+        if (lon, lat) != self._center:
+            self._center = (lon, lat)
+            self.Modified()
+
+    def SetRadius(self, value):
+        if value != self._radius:
+            self._radius = float(value)
+            self.Modified()
+
+    def SetNumberOfSplits(self, value):
+        if value != self._n_splits:
+            self._n_splits = max(1, int(value))
+            self.Modified()
+
+    def SetLabelOffset(self, value):
+        if value != self._label_offset:
+            self._label_offset = float(value)
+            self.Modified()
+
+    def SetResolution(self, value):
+        if value != self._resolution:
+            self._resolution = max(3, int(value))
+            self.Modified()
+
+    def RequestData(self, request, inInfo, outInfo):
+        volume = vtkUnstructuredGrid.GetData(inInfo[0], 0)
+        output = vtkUnstructuredGrid.GetData(outInfo, 0)
+        output.Initialize()
+
+        if volume is None or volume.GetNumberOfPoints() == 0:
+            return 1
+
+        z_min, z_max = volume.GetBounds()[4:6]
+        z_splits = np.linspace(z_min, z_max, self._n_splits + 1)
+
+        lon, lat = self._center
+        n_res = self._resolution
+        angles = np.linspace(0, 2 * np.pi, n_res, endpoint=False)
+        ring_lon = lon + self._radius * np.cos(angles)
+        ring_lat = lat + self._radius * np.sin(angles)
+
+        # One ring of n_res points per split, bottom first
+        n_rings = len(z_splits)
+        pts = np.empty((n_rings, n_res, 3), dtype=np.float64)
+        pts[:, :, 0] = ring_lon[None, :]
+        pts[:, :, 1] = ring_lat[None, :]
+        pts[:, :, 2] = z_splits[:, None]
+
+        # Label points (no cells), pushed outward on the equator side
+        label_lat = lat + (-1 if lat >= 0 else 1) * (self._radius + self._label_offset)
+        label_pts = np.column_stack(
+            [np.full(n_rings, lon), np.full(n_rings, label_lat), z_splits]
+        )
+
+        all_pts = np.vstack([pts.reshape(-1, 3), label_pts])
+        points = vtkPoints()
+        points.SetData(numpy_support.numpy_to_vtk(all_pts, deep=True))
+        output.SetPoints(points)
+
+        output.Allocate(n_rings)
+        for r in range(n_rings):
+            ring = [r * n_res + i for i in range(n_res)]
+            output.InsertNextCell(vtkConstants.VTK_POLY_LINE, n_res + 1, [*ring, ring[0]])
+
+        label_array = vtkStringArray()
+        label_array.SetName("labels")
+        label_array.SetNumberOfValues(len(all_pts))
+        for r, z in enumerate(z_splits):
+            label_array.SetValue(n_rings * n_res + r, f"{z:.1f} hPa")
+        output.GetPointData().AddArray(label_array)
 
         return 1

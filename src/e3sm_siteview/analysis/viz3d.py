@@ -21,6 +21,7 @@ from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa: F40
 from vtkmodules.vtkIOXML import vtkXMLPolyDataReader
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
+    vtkBillboardTextActor3D,
     vtkCamera,
     vtkDataSetMapper,
     vtkRenderer,
@@ -35,6 +36,7 @@ from e3sm_siteview.io import (
     EARTH_RADIUS,
     EAMColumnVolume,
     EAMGridLines,
+    EAMLevelCylinder,
     EAMProject,
 )
 
@@ -202,6 +204,30 @@ class Viz3D(TrameComponent):
         )
         self.colormap_config.register_mapper(self.slice_v_mapper)
 
+        # Level cylinder
+        self.level_cylinder = EAMLevelCylinder()
+        self.level_cylinder.SetCenter(*self.ctx.setup.center[:2])
+        self.level_cylinder.SetRadius(self.ctx.setup.radius_deg)
+        level_cylinder_mapper = vtkDataSetMapper()
+        level_cylinder_mapper.ScalarVisibilityOff()
+        self.level_cylinder_actor = vtkActor(mapper=level_cylinder_mapper)
+        self.level_cylinder_actor.property.color = (1, 1, 1)
+        self.level_cylinder_actor.property.line_width = 2
+        self.renderer.AddActor(self.level_cylinder_actor)
+        self.level_cylinder_proj = self._proj()
+        (
+            self.clean_volume
+            >> self.level_cylinder
+            >> self.level_cylinder_proj
+            >> level_cylinder_mapper
+        )
+
+        # Level cylinder labels: depth tested billboards (occluded by the
+        # scene), synced with the projected cylinder right before each render.
+        self.level_label_actors = []
+        self._level_labels_mtime = 0
+        renderWindow.AddObserver("StartEvent", self._sync_level_labels)
+
         # Volume
         self.threshold = vtkThreshold()
         self.threshold_mapper = vtkDataSetMapper()
@@ -254,6 +280,36 @@ class Viz3D(TrameComponent):
 
         self._reset_camera()
 
+    def _sync_level_labels(self, *_):
+        self.level_cylinder_proj.Update()
+        cylinder = self.level_cylinder_proj.GetOutputDataObject(0)
+        if cylinder.GetMTime() == self._level_labels_mtime:
+            return
+        self._level_labels_mtime = cylinder.GetMTime()
+
+        labels = cylinder.GetPointData().GetAbstractArray("labels")
+        entries = []
+        if labels is not None:
+            for i in range(labels.GetNumberOfValues()):
+                if text := labels.GetValue(i):
+                    entries.append((text, cylinder.GetPoint(i)))
+
+        while len(self.level_label_actors) < len(entries):
+            actor = vtkBillboardTextActor3D()
+            actor.text_property.color = (1, 1, 1)
+            actor.text_property.font_size = 28
+            actor.text_property.justification = 1  # center
+            actor.text_property.vertical_justification = 1  # center
+            self.renderer.AddActor(actor)
+            self.level_label_actors.append(actor)
+
+        for i, actor in enumerate(self.level_label_actors):
+            if i < len(entries):
+                actor.input, actor.position = entries[i]
+                actor.visibility = 1
+            else:
+                actor.visibility = 0
+
     def _subscribe(self, obj, watch, callback, eager=False, sync=False):
         self._subscriptions.append(obj.watch(watch, callback, eager=eager, sync=sync))
 
@@ -291,6 +347,12 @@ class Viz3D(TrameComponent):
             self.ctx.setup, ["active_viz"], self._on_visibility_change, eager=True
         )
         self._subscribe(
+            self.ctx.setup,
+            ["center", "radius_deg"],
+            self._on_region_change,
+            eager=True,
+        )
+        self._subscribe(
             self.ctx.setup.zscale, ["scale"], self._on_z_scale_change, eager=True
         )
         self._subscribe(self.colormap_config, ["mapper_change"], self._need_render)
@@ -307,6 +369,11 @@ class Viz3D(TrameComponent):
         for projection_filter in self._projections:
             projection_filter.SetAltitudeScale(zscale)
 
+        self.view_handler.update()
+
+    def _on_region_change(self, center, radius_deg):
+        self.level_cylinder.SetCenter(center[0], center[1])
+        self.level_cylinder.SetRadius(radius_deg)
         self.view_handler.update()
 
     def _on_visibility_change(self, active_viz):
