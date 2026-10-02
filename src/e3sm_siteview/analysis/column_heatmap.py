@@ -7,6 +7,7 @@ from trame.app import TrameComponent
 from trame.ui.html import DivLayout
 from trame.widgets import html, plotly
 from trame.widgets import vuetify3 as v3
+from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
@@ -40,7 +41,9 @@ class ColumnHeatMap(TrameComponent):
 
     def bind_reactivity(self):
         self._subscribe(
-            self.ctx.setup.surface_chart, ["color_by", "column"], self._compute_heatmap
+            self.ctx.setup.surface_chart,
+            ["color_by", "column", "extra_fields"],
+            self._compute_heatmap,
         )
         self._subscribe(
             self.ctx.setup.column, ["altitude_range"], self._compute_heatmap
@@ -74,11 +77,17 @@ class ColumnHeatMap(TrameComponent):
         self._compute_heatmap()
 
     def _compute_heatmap(self, *_):
-        field = self.ctx.setup.surface_chart.color_by
+        primary = self.ctx.setup.surface_chart.color_by
         col_id = self.ctx.setup.surface_chart.column
         altitude_range = self.ctx.setup.column.altitude_range
 
-        if field is None:
+        fields = [primary] if primary else []
+        for field in self.ctx.setup.surface_chart.extra_fields:
+            if field not in fields:
+                fields.append(field)
+
+        if not fields:
+            self.ctx.setup.surface_chart.results = []
             return
 
         col = self.single_column_reader
@@ -86,65 +95,78 @@ class ColumnHeatMap(TrameComponent):
         select_arrays = col.GetProfileVariables()
 
         select_arrays.DisableAllArrays()
-        select_arrays.EnableArray(field)
+        for field in fields:
+            select_arrays.EnableArray(field)
 
         time_labels = self._time_labels()
-        series = []
+        series = {field: [] for field in fields}
         levels = None
         for t in range(len(time_labels)):
             col.SetSlicing(json.dumps({"time": t}))
             col.Update()
             table = col.GetOutputDataObject(0)
-            array = table.GetColumnByName(field)
-            profile = numpy_support.vtk_to_numpy(array)[0]  # (n_lev,)
-            series.append(profile[altitude_range[0] : altitude_range[1]])
+            for field in fields:
+                array = table.GetColumnByName(field)
+                profile = numpy_support.vtk_to_numpy(array)[0]  # (n_lev,)
+                series[field].append(profile[altitude_range[0] : altitude_range[1]])
 
             if levels is None:
                 levels = table.field_data["lev"][0][
                     altitude_range[0] : altitude_range[1]
                 ]
 
-        series = np.array(series)  # (time, level)
-        # fig = px.imshow(
-        #     series.T,
-        #     aspect="auto",
-        #     origin="lower",
-        #     color_continuous_scale="Viridis",
-        # )
-        fig = go.Figure(
-            data=go.Heatmap(
-                z=series.T,
-                x=time_labels,
-                y=levels,
-                colorscale="Viridis",
-                hovertemplate=(
-                    f"time: %{{x}}<br>lev: %{{y}}<br>{field}: %{{z}}<extra></extra>"
-                ),
-            )
-        )
         # Only label a handful of time steps to keep the axis readable
         tick_step = max(1, len(time_labels) // 6)
         tick_vals = time_labels[::tick_step]
         tick_text = [str(v).replace(" ", "<br>") for v in tick_vals]
 
-        fig.update_layout(
-            title={"text": field, "x": 0.5, "xanchor": "center"},
-            xaxis={
-                "title": "time",
-                "side": "bottom",
-                "type": "category",
-                "tickmode": "array",
-                "tickvals": tick_vals,
-                "ticktext": tick_text,
-                "tickangle": 0,
-            },
-            yaxis={"autorange": "reversed"},
-            showlegend=False,
-            margin={"b": 60, "l": 0, "r": 0, "t": 30},
-        )
+        results = []
+        for field in fields:
+            fig = go.Figure(
+                data=go.Heatmap(
+                    z=np.array(series[field]).T,  # (level, time)
+                    x=time_labels,
+                    y=levels,
+                    colorscale="Viridis",
+                    hovertemplate=(
+                        f"time: %{{x}}<br>lev: %{{y}}<br>{field}: %{{z}}<extra></extra>"
+                    ),
+                )
+            )
+            fig.update_layout(
+                title={"text": field, "x": 0.5, "xanchor": "center"},
+                xaxis={
+                    "title": "time",
+                    "side": "bottom",
+                    "type": "category",
+                    "tickmode": "array",
+                    "tickvals": tick_vals,
+                    "ticktext": tick_text,
+                    "tickangle": 0,
+                },
+                yaxis={"autorange": "reversed"},
+                showlegend=False,
+                margin={"b": 60, "l": 0, "r": 0, "t": 30},
+            )
+            results.append(
+                {
+                    "field": field,
+                    "removable": field != primary,
+                    **encode(fig.to_plotly_json()),
+                }
+            )
 
-        with self.state:
-            self.update_figure(fig)
+        self.ctx.setup.surface_chart.results = results
+
+    def add_field(self, field):
+        extra_fields = self.ctx.setup.surface_chart.extra_fields
+        if field != self.ctx.setup.surface_chart.color_by and field not in extra_fields:
+            self.ctx.setup.surface_chart.extra_fields = [*extra_fields, field]
+
+    def remove_field(self, field):
+        self.ctx.setup.surface_chart.extra_fields = [
+            f for f in self.ctx.setup.surface_chart.extra_fields if f != field
+        ]
 
     def shift_col_id(self, delta):
         all_ids = self.ctx.setup.col_ids
@@ -160,6 +182,7 @@ class ColumnHeatMap(TrameComponent):
         self.ctx.setup.surface_chart.column = all_ids.GetId(0)
 
     def _build_ui(self):
+        plotly.initialize(self.server)
         with DivLayout(self.server, self.name, classes="h-100") as self.ui:
             with (
                 self.ctx.setup.provide_as("global"),
@@ -182,6 +205,25 @@ class ColumnHeatMap(TrameComponent):
                         variant="flat",
                         classes="w-100",
                     )
+                    with v3.VMenu(location="bottom end"):
+                        with v3.Template(v_slot_activator="{ props }"):
+                            v3.VBtn(
+                                v_bind="props",
+                                icon="mdi-plus",
+                                classes="rounded",
+                                density="compact",
+                            )
+                        with v3.VList(density="compact", max_height="50vh"):
+                            v3.VListItem(
+                                v_for=(
+                                    "name in global.variables_3d.filter(v => v.selected).map(v => v.name)"
+                                    ".filter(n => n !== global.surface_chart.color_by"
+                                    " && !global.surface_chart.extra_fields.includes(n))"
+                                ),
+                                key="name",
+                                title=("name",),
+                                click=(self.add_field, "[name]"),
+                            )
                     v3.VSpacer()
                     v3.VSelect(
                         prepend_inner_icon="mdi-map-marker-outline",
@@ -205,10 +247,31 @@ class ColumnHeatMap(TrameComponent):
                         density="compact",
                     )
 
-                with html.Div(classes="flex-fill pa-2 border-thin"):
-                    self.update_figure = plotly.Figure(
-                        display_mode_bar=("false",)
-                    ).update
+                with html.Div(classes="flex-fill pa-2 border-thin overflow-auto"):
+                    with v3.VCard(
+                        v_for="(v, i) in global.surface_chart.results",
+                        key="v.field",
+                        variant="flat",
+                        rounded=0,
+                        classes="position-relative",
+                        style=(
+                            "`height: max(300px, (100% - ${5 * (global.surface_chart.results.length - 1)}px) / ${global.surface_chart.results.length});`"
+                            " + (i > 0 ? 'border-top: 1px solid rgba(0, 0, 0, 0.25);margin-top: 5px;padding-top: 5px;' : '')",
+                        ),
+                    ) as container:
+                        container.add_child(
+                            '<trame-plotly :data="v.data" :layout="v.layout" :displayModeBar="false" :displaylogo="false" />'
+                        )
+                        v3.VBtn(
+                            v_if="v.removable",
+                            icon="mdi-close",
+                            size="small",
+                            variant="outlined",
+                            classes="rounded",
+                            density="compact",
+                            style="position:absolute;top:6px;right:6px;z-index:1;",
+                            click=(self.remove_field, "[v.field]"),
+                        )
 
 
 register_analysis(NAME, ColumnHeatMap)
