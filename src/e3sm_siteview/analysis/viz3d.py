@@ -8,25 +8,36 @@ from trame.ui.html import DivLayout
 from trame.widgets import colormaps, html, rca
 from trame.widgets import vuetify3 as v3
 from vtkmodules.vtkCommonDataModel import vtkDataObject, vtkPlane
+from vtkmodules.vtkCommonMath import vtkMatrix4x4
 from vtkmodules.vtkFiltersCore import (
     vtk3DLinearGridCrinkleExtractor,
+    vtkAppendPolyData,
     vtkFeatureEdges,
     vtkPolyDataToUnstructuredGrid,
     vtkThreshold,
 )
 from vtkmodules.vtkFiltersGeneral import vtkCleanUnstructuredGrid
 from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
-from vtkmodules.vtkFiltersSources import vtkSphereSource
+from vtkmodules.vtkFiltersSources import (
+    vtkConeSource,
+    vtkCylinderSource,
+    vtkSphereSource,
+    vtkTexturedSphereSource,
+)
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa: F401
+from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
+from vtkmodules.vtkIOImage import vtkJPEGReader
 from vtkmodules.vtkIOXML import vtkXMLPolyDataReader
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
+    vtkAssembly,
     vtkBillboardTextActor3D,
     vtkCamera,
     vtkDataSetMapper,
     vtkRenderer,
     vtkRenderWindow,
     vtkRenderWindowInteractor,
+    vtkTexture,
 )
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
@@ -34,6 +45,7 @@ from e3sm_siteview.components import controls
 from e3sm_siteview.io import (
     CONTINENT_PATH,
     EARTH_RADIUS,
+    EARTH_TEXTURE_PATH,
     EAMColumnVolume,
     EAMGridLines,
     EAMLevelCylinder,
@@ -280,6 +292,58 @@ class Viz3D(TrameComponent):
         grid_actor.property.diffuse_color = (0, 0, 0)
         self.grid >> self._proj() >> grid_mapper
         self.renderer.AddActor(grid_actor)
+
+        # Orientation marker: textured earth
+        earth_texture = vtkTexture(interpolate=1, mipmap=1)
+        vtkJPEGReader(file_name=str(EARTH_TEXTURE_PATH)) >> earth_texture
+        earth_marker_mapper = vtkDataSetMapper()
+        (
+            vtkTexturedSphereSource(theta_resolution=64, phi_resolution=32)
+            >> earth_marker_mapper
+        )
+        earth_marker = vtkActor(mapper=earth_marker_mapper, texture=earth_texture)
+        # Sphere source has poles on Z with lon=-180 on +X; align it with
+        # EAMProject (north on +Y, lon=0 on +Z, lon=90 on +X)
+        marker_matrix = vtkMatrix4x4()
+        marker_matrix.DeepCopy(
+            (
+                *(0, -1, 0, 0),
+                *(0, 0, 1, 0),
+                *(-1, 0, 0, 0),
+                *(0, 0, 0, 1),
+            )
+        )
+        earth_marker.user_matrix = marker_matrix
+
+        # Rotation axis: south to north (+Y) with a cone at the north tip
+        rotation_axis = vtkAppendPolyData()
+        vtkCylinderSource(radius=0.02, height=1.4, resolution=24) >> rotation_axis
+        (
+            vtkConeSource(
+                center=(0, 0.7, 0),
+                direction=(0, 1, 0),
+                height=0.2,
+                radius=0.07,
+                resolution=24,
+            )
+            >> rotation_axis
+        )
+        rotation_axis_mapper = vtkDataSetMapper()
+        rotation_axis >> rotation_axis_mapper
+        rotation_axis_actor = vtkActor(mapper=rotation_axis_mapper)
+        rotation_axis_actor.property.color = (0.9, 0.2, 0.2)
+
+        earth_with_axis = vtkAssembly()
+        earth_with_axis.AddPart(earth_marker)
+        earth_with_axis.AddPart(rotation_axis_actor)
+
+        self.orientation_widget = vtkOrientationMarkerWidget(
+            orientation_marker=earth_with_axis,
+            interactor=renderWindowInteractor,
+            viewport=(0.85, 0.85, 1, 1),
+        )
+        self.orientation_widget.EnabledOn()
+        self.orientation_widget.InteractiveOff()
 
         self._reset_camera()
 

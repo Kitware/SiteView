@@ -10,6 +10,9 @@ import numpy as np
 POINTS_PER_LINE = 100
 
 CONTINENT_PATH = Path(__file__).with_name("continents.vtp").resolve()
+EARTH_TEXTURE_PATH = (
+    Path(__file__).parent.parent / "module" / "serve" / "Equirectangular-projection.jpg"
+).resolve()
 
 
 class EAMGridLines(VTKPythonAlgorithmBase):
