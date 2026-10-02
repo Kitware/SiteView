@@ -12,8 +12,12 @@ from vtkmodules.vtkFiltersGeneral import vtkTransformFilter
 from e3sm_siteview.constants import FIELDS_METADATA
 
 
+def normalize_lon(lon):
+    return (float(lon) + 180) % 360 - 180
+
+
 def format_lat_lon(lon, lat):
-    lon = (float(lon) + 180) % 360 - 180
+    lon = normalize_lon(lon)
     lat = float(lat)
     return (
         f"{abs(lat):.2f}°{'N' if lat >= 0 else 'S'}, "
@@ -226,6 +230,12 @@ class GlobalParameters(dataclass.StateDataModel):
         point_ids = [
             self.col_ids.GetId(i) for i in range(self.col_ids.GetNumberOfIds())
         ]
+        # Order by (lat, lon) with the column closest to the center first
+        point_ids.sort(key=lambda pid: (points[pid][1], normalize_lon(points[pid][0])))
+        center_id = self.locator.FindClosestPoint(center)
+        if center_id in point_ids:
+            point_ids.remove(center_id)
+            point_ids.insert(0, center_id)
         selected_ids = [int(col_id[pid]) for pid in point_ids]
         self.col_items = [
             {"title": format_lat_lon(*points[pid][:2]), "value": int(col_id[pid])}

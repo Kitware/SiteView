@@ -26,8 +26,7 @@ class ColumnHeatMap(TrameComponent):
         self.single_column_reader = EAMColumnSource()
         self.single_column_reader.SetDataFileName(self.columns.GetDataFileName())
 
-        col_ids = json.loads(self.ctx.setup.col_ids_str)
-        self.ctx.setup.surface_chart.column = col_ids[0] if col_ids else None
+        self._select_center_column()
 
         self._build_ui()
         self.bind_reactivity()
@@ -50,10 +49,16 @@ class ColumnHeatMap(TrameComponent):
             self.ctx.setup.column, ["altitude_range"], self._compute_heatmap
         )
         self._subscribe(self.ctx.setup.volume, ["color_by"], self._sync_color_by)
+        self._subscribe(self.ctx.setup, ["col_ids_str"], self._select_center_column)
 
     def unbind_reactivity(self):
         while self._subscriptions:
             self._subscriptions.pop()()
+
+    def _select_center_column(self, *_):
+        # The column closest to the region center comes first
+        col_ids = json.loads(self.ctx.setup.col_ids_str)
+        self.ctx.setup.surface_chart.column = col_ids[0] if col_ids else None
 
     def _sync_color_by(self, color_by):
         self.ctx.setup.surface_chart.color_by = color_by
