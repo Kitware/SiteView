@@ -26,7 +26,8 @@ class ColumnHeatMap(TrameComponent):
         self.single_column_reader = EAMColumnSource()
         self.single_column_reader.SetDataFileName(self.columns.GetDataFileName())
 
-        self.ctx.setup.surface_chart.column = self.ctx.setup.col_ids.GetId(0)
+        col_ids = json.loads(self.ctx.setup.col_ids_str)
+        self.ctx.setup.surface_chart.column = col_ids[0] if col_ids else None
 
         self._build_ui()
         self.bind_reactivity()
@@ -120,6 +121,15 @@ class ColumnHeatMap(TrameComponent):
         tick_vals = time_labels[::tick_step]
         tick_text = [str(v).replace(" ", "<br>") for v in tick_vals]
 
+        col_label = next(
+            (
+                item["title"]
+                for item in self.ctx.setup.col_items
+                if item["value"] == col_id
+            ),
+            str(col_id),
+        )
+
         results = []
         for field in fields:
             fig = go.Figure(
@@ -134,7 +144,7 @@ class ColumnHeatMap(TrameComponent):
                 )
             )
             fig.update_layout(
-                title={"text": field, "x": 0.5, "xanchor": "center"},
+                title={"text": f"{field} ({col_label})", "x": 0.5, "xanchor": "center"},
                 xaxis={
                     "title": "time",
                     "side": "bottom",
@@ -169,17 +179,18 @@ class ColumnHeatMap(TrameComponent):
         ]
 
     def shift_col_id(self, delta):
-        all_ids = self.ctx.setup.col_ids
-        current_col_id = self.ctx.setup.surface_chart.column
-        num_ids = all_ids.GetNumberOfIds()
-        for i in range(num_ids):
-            local_id = all_ids.GetId(i)
-            if current_col_id == local_id:
-                target_idx = min(max(0, i + delta), num_ids - 1)
-                self.ctx.setup.surface_chart.column = all_ids.GetId(target_idx)
-                return
+        all_ids = json.loads(self.ctx.setup.col_ids_str)
+        if not all_ids:
+            return
 
-        self.ctx.setup.surface_chart.column = all_ids.GetId(0)
+        current_col_id = self.ctx.setup.surface_chart.column
+        if current_col_id in all_ids:
+            i = all_ids.index(current_col_id)
+            target_idx = min(max(0, i + delta), len(all_ids) - 1)
+            self.ctx.setup.surface_chart.column = all_ids[target_idx]
+            return
+
+        self.ctx.setup.surface_chart.column = all_ids[0]
 
     def _build_ui(self):
         plotly.initialize(self.server)
@@ -205,47 +216,57 @@ class ColumnHeatMap(TrameComponent):
                         variant="flat",
                         classes="w-100",
                     )
-                    with v3.VMenu(location="bottom end"):
-                        with v3.Template(v_slot_activator="{ props }"):
-                            v3.VBtn(
-                                v_bind="props",
-                                icon="mdi-plus",
-                                classes="rounded",
-                                density="compact",
-                            )
-                        with v3.VList(density="compact", max_height="50vh"):
-                            v3.VListItem(
-                                v_for=(
-                                    "name in global.variables_3d.filter(v => v.selected).map(v => v.name)"
-                                    ".filter(n => n !== global.surface_chart.color_by"
-                                    " && !global.surface_chart.extra_fields.includes(n))"
-                                ),
-                                key="name",
-                                title=("name",),
-                                click=(self.add_field, "[name]"),
-                            )
-                    v3.VSpacer()
-                    v3.VSelect(
-                        prepend_inner_icon="mdi-map-marker-outline",
-                        v_model="global.surface_chart.column",
-                        items=("JSON.parse(global.col_ids_str)",),
-                        density="compact",
-                        hide_details=True,
-                        variant="flat",
-                        style="width:190px;",
-                    )
-                    v3.VBtn(
-                        icon="mdi-chevron-left",
-                        click=(self.shift_col_id, "[-1]"),
-                        classes="rounded",
-                        density="compact",
-                    )
-                    v3.VBtn(
-                        icon="mdi-chevron-right",
-                        click=(self.shift_col_id, "[+1]"),
-                        classes="rounded",
-                        density="compact",
-                    )
+                    with html.Div(classes="d-flex ga-2"):
+                        with v3.VMenu(location="bottom end"):
+                            with v3.Template(v_slot_activator="{ props }"):
+                                v3.VBtn(
+                                    v_bind="props",
+                                    icon="mdi-plus",
+                                    classes="rounded",
+                                    density="compact",
+                                )
+                            with v3.VList(density="compact", max_height="50vh"):
+                                v3.VListItem(
+                                    v_for=(
+                                        "name in global.variables_3d.filter(v => v.selected).map(v => v.name)"
+                                        ".filter(n => n !== global.surface_chart.color_by"
+                                        " && !global.surface_chart.extra_fields.includes(n))"
+                                    ),
+                                    key="name",
+                                    title=("name",),
+                                    click=(self.add_field, "[name]"),
+                                )
+
+                        with v3.VMenu(location="bottom end"):
+                            with v3.Template(v_slot_activator="{ props }"):
+                                v3.VBtn(
+                                    v_bind="props",
+                                    icon="mdi-map-marker-outline",
+                                    classes="rounded",
+                                    density="compact",
+                                )
+                            with v3.VList(density="compact", max_height="50vh"):
+                                v3.VListItem(
+                                    v_for="item in global.col_items",
+                                    key="item.value",
+                                    title=("item.title",),
+                                    active=(
+                                        "item.value === global.surface_chart.column",
+                                    ),
+                                    click="global.surface_chart.column = item.value",
+                                )
+                        v3.VBtn(
+                            icon="mdi-chevron-left",
+                            click=(self.shift_col_id, "[-1]"),
+                            classes="rounded",
+                            density="compact",
+                        )
+                        v3.VBtn(
+                            icon="mdi-chevron-right",
+                            click=(self.shift_col_id, "[+1]"),
+                            classes="rounded",
+                            density="compact",
+                        )
 
                 with html.Div(classes="flex-fill pa-2 border-thin overflow-auto"):
                     with v3.VCard(
