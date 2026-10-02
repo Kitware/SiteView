@@ -83,6 +83,8 @@ class VisualizationAnalysis(dataclass.StateDataModel):
 class DrappedChart(dataclass.StateDataModel):
     color_by = dataclass.Sync(str)
     column = dataclass.Sync(int, 0)
+    extra_fields = dataclass.Sync(list[str], list)
+    results = dataclass.Sync(list, list)
 
 
 class CellTimeCharts(dataclass.StateDataModel):
