@@ -11,6 +11,6 @@ classes run under pure VTK. Configure via ``Set*`` methods and wire with
 from .eam_filters import EAMColumnVolume, EAMLevelCylinder
 from .eam_reader import EAMColumnSource, EAMMeshSource
 from .projection import EAMProject, EARTH_RADIUS
-from .earth import CONTINENT_PATH, EAMGridLines
+from .earth import CONTINENT_PATH, EARTH_TEXTURE_PATH, EAMGridLines
 
-__all__ = ["EAMColumnSource", "EAMColumnVolume", "EAMLevelCylinder", "EAMMeshSource", "EAMProject", "CONTINENT_PATH", "EAMGridLines", "EARTH_RADIUS"]
+__all__ = ["EAMColumnSource", "EAMColumnVolume", "EAMLevelCylinder", "EAMMeshSource", "EAMProject", "CONTINENT_PATH", "EARTH_TEXTURE_PATH", "EAMGridLines", "EARTH_RADIUS"]
