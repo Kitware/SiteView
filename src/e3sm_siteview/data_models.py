@@ -74,6 +74,11 @@ class HSliceControls(dataclass.StateDataModel):
 class FindDataControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
     formula = dataclass.Sync(str, "")
+    error = dataclass.Sync(str, "")
+
+    @dataclass.watch("formula")
+    def _on_formula_change(self, _):
+        self.error = ""
 
 
 class ColumnControls(dataclass.StateDataModel):
