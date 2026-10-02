@@ -1,5 +1,6 @@
 import math
 
+import plotly.colors
 import vtkmodules.vtkRenderingOpenGL2  # noqa: F401
 from trame.app import TrameComponent
 from trame.dataclasses.colormaps import ColormapConfig
@@ -47,6 +48,7 @@ from e3sm_siteview.io import (
     CONTINENT_PATH,
     EARTH_RADIUS,
     EARTH_TEXTURE_PATH,
+    EAMColumnMarkers,
     EAMColumnVolume,
     EAMGridLines,
     EAMLevelCylinder,
@@ -63,6 +65,15 @@ EARTH_AXIS = (0, 1, 0)
 SITE_MARKER_EARTH_RADIUS = 0.5
 SITE_MARKER_HEIGHT = 0.1
 SITE_MARKER_MIN_RADIUS = 0.03
+
+# Selected column markers (line chart colors match its plotly traces)
+COLUMN_MARKER_AREA_FRACTION = 0.05
+COLUMN_MARKER_SPHERE_SCALE = 2  # sphere radius relative to cylinder radius
+COLUMN_MARKER_AMBIENT = 0.5
+HEATMAP_COLUMN_COLOR = (255, 255, 255)
+LINE_CHART_COLORS = [
+    plotly.colors.hex_to_rgb(c) for c in plotly.colors.qualitative.Plotly
+]
 
 
 def _rotate_camera(camera, angle, axis, center):
@@ -343,6 +354,34 @@ class Viz3D(TrameComponent):
         self._level_labels_mtime = 0
         renderWindow.AddObserver("StartEvent", self._sync_level_labels)
 
+        # Selected column markers: cylinders through the columns used by the
+        # heat map / line chart, plus spheres on the line chart cells
+        self.column_markers = EAMColumnMarkers()
+        self.column_markers.SetAreaFraction(COLUMN_MARKER_AREA_FRACTION)
+        self.column_markers.SetInputConnection(self.volume.GetOutputPort())
+        column_cylinders_proj = self._proj()
+        column_cylinders_proj.SetInputConnection(self.column_markers.GetOutputPort(0))
+        column_cylinders_mapper = vtkDataSetMapper()
+        column_cylinders_mapper.ScalarVisibilityOn()
+        column_cylinders_mapper.SetScalarModeToUseCellFieldData()
+        column_cylinders_mapper.SelectColorArray("colors")
+        column_cylinders_mapper.SetColorModeToDirectScalars()
+        column_cylinders_proj >> column_cylinders_mapper
+        column_cylinders_actor = vtkActor(mapper=column_cylinders_mapper)
+        # Keep the sides bright when looking down the columns
+        column_cylinders_actor.property.ambient = COLUMN_MARKER_AMBIENT
+        column_cylinders_actor.property.diffuse = 1 - COLUMN_MARKER_AMBIENT
+        self.renderer.AddActor(column_cylinders_actor)
+
+        # Column spheres: synced with the projected centers before each render
+        self.column_spheres_proj = self._proj()
+        self.column_spheres_proj.SetInputConnection(
+            self.column_markers.GetOutputPort(1)
+        )
+        self.column_sphere_actors = []
+        self._column_spheres_mtime = 0
+        renderWindow.AddObserver("StartEvent", self._sync_column_spheres)
+
         # Volume
         self.threshold = vtkThreshold()
         self.threshold_mapper = vtkDataSetMapper()
@@ -510,6 +549,40 @@ class Viz3D(TrameComponent):
             else:
                 actor.visibility = 0
 
+    def _sync_column_spheres(self, *_):
+        self.column_spheres_proj.Update()
+        centers = self.column_spheres_proj.GetOutputDataObject(0)
+        if centers.GetMTime() == self._column_spheres_mtime:
+            return
+        self._column_spheres_mtime = centers.GetMTime()
+
+        n_spheres = centers.GetNumberOfPoints()
+        while len(self.column_sphere_actors) < n_spheres:
+            mapper = vtkDataSetMapper()
+            source = vtkSphereSource(theta_resolution=24, phi_resolution=24)
+            source >> mapper
+            actor = vtkActor(mapper=mapper)
+            actor.source = source
+            actor.property.ambient = COLUMN_MARKER_AMBIENT
+            actor.property.diffuse = 1 - COLUMN_MARKER_AMBIENT
+            self.renderer.AddActor(actor)
+            self.column_sphere_actors.append(actor)
+
+        point_data = centers.GetPointData()
+        for i, actor in enumerate(self.column_sphere_actors):
+            if i < n_spheres:
+                radius_deg = point_data.GetArray("radius").GetValue(i)
+                actor.source.center = centers.GetPoint(i)
+                actor.source.radius = (
+                    COLUMN_MARKER_SPHERE_SCALE * math.radians(radius_deg) * EARTH_RADIUS
+                )
+                actor.property.color = [
+                    v / 255 for v in point_data.GetArray("colors").GetTuple3(i)
+                ]
+                actor.visibility = 1
+            else:
+                actor.visibility = 0
+
     def _subscribe(self, obj, watch, callback, eager=False, sync=False):
         self._subscriptions.append(obj.watch(watch, callback, eager=eager, sync=sync))
 
@@ -556,6 +629,21 @@ class Viz3D(TrameComponent):
             self.ctx.setup.zscale, ["scale"], self._on_z_scale_change, eager=True
         )
         self._subscribe(self.ctx.setup, ["camera_focus"], self._on_camera_focus_change)
+        self._subscribe(
+            self.ctx.setup, ["active_analysis"], self._on_column_markers_change
+        )
+        self._subscribe(
+            self.ctx.setup.surface_chart, ["column"], self._on_column_markers_change
+        )
+        self._subscribe(
+            self.ctx.setup.line_chart, ["columns"], self._on_column_markers_change
+        )
+        self._subscribe(
+            self.ctx.setup.hslice,
+            ["altitude"],
+            self._on_column_markers_change,
+            eager=True,
+        )
         self._subscribe(self.colormap_config, ["mapper_change"], self._need_render)
         self.ctrl.update_color_range.add(self.colormap_config.update_color_range)
 
@@ -570,6 +658,28 @@ class Viz3D(TrameComponent):
         for projection_filter in self._projections:
             projection_filter.SetAltitudeScale(zscale)
 
+        self.view_handler.update()
+
+    def _on_column_markers_change(self, *_):
+        active_analysis = self.ctx.setup.active_analysis
+        line_entries = []
+        if "cellTimeChart" in active_analysis:
+            line_entries = [
+                (col_id, LINE_CHART_COLORS[i % len(LINE_CHART_COLORS)])
+                for i, col_id in enumerate(self.ctx.setup.line_chart.columns)
+            ]
+
+        cylinders = list(
+            line_entries
+        )  # Edit if only want to see sphere for line locations
+        heatmap_column = self.ctx.setup.surface_chart.column
+        if "columnHeatMap" in active_analysis and heatmap_column is not None:
+            cylinders = [e for e in cylinders if e[0] != heatmap_column]
+            cylinders.append((heatmap_column, HEATMAP_COLUMN_COLOR))
+
+        self.column_markers.SetCylinders(cylinders)
+        self.column_markers.SetSpheres(line_entries)
+        self.column_markers.SetLevel(self.ctx.setup.hslice.altitude)
         self.view_handler.update()
 
     def _on_camera_focus_change(self, *_):

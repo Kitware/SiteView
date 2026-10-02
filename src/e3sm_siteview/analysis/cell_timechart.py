@@ -1,6 +1,7 @@
 import json
 
 import numpy as np
+import plotly.colors
 import plotly.graph_objects as go
 from trame.app import TrameComponent
 from trame.ui.html import DivLayout
@@ -13,6 +14,7 @@ from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
 from e3sm_siteview.io import EAMColumnSource
 
 NAME = "cellTimeChart"
+COLORS = plotly.colors.qualitative.Plotly
 
 
 def min_max(array, min_value, max_value):
@@ -93,7 +95,7 @@ class CellTimeChart(TrameComponent):
             fig = go.Figure()
             y1 = None
             y0 = None
-            for col, values in cols.items():
+            for idx, (col, values) in enumerate(cols.items()):
                 array = np.array(values)
                 fig.add_trace(
                     go.Scatter(
@@ -101,6 +103,7 @@ class CellTimeChart(TrameComponent):
                         y=array,
                         name=labels.get(col, str(col)),
                         mode="lines",
+                        line={"color": COLORS[idx % len(COLORS)]},
                     )
                 )
                 y0, y1 = min_max(array, y0, y1)

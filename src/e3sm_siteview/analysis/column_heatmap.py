@@ -87,7 +87,7 @@ class ColumnHeatMap(TrameComponent):
             if field not in fields:
                 fields.append(field)
 
-        if not fields:
+        if not fields or col_id is None:
             self.ctx.setup.surface_chart.results = []
             return
 

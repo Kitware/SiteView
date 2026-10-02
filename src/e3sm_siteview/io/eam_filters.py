@@ -369,3 +369,176 @@ class EAMLevelCylinder(VTKPythonAlgorithmBase):
         output.GetPointData().AddArray(label_array)
 
         return 1
+
+
+class EAMColumnMarkers(VTKPythonAlgorithmBase):
+    """Markers for a set of columns of an EAMColumnVolume.
+
+    Input is the (unprojected) column volume: points are (lon, lat, pressure).
+    Outputs are unstructured grids in the same space, so they can go through
+    EAMProject like the volume:
+      * port 0: one vertical cylinder per column set with SetCylinders(),
+        centered on the column and spanning its vertical extent, with a
+        footprint of AreaFraction of the column cell surface
+      * port 1: one vertex per column set with SetSpheres(), at the center of
+        the column cell at level Level, with point data ``radius`` holding the
+        matching cylinder radius (degrees of latitude)
+    Both carry a ``colors`` (RGB unsigned char) array, on cells for port 0 and
+    on points for port 1.
+    """
+
+    def __init__(self):
+        super().__init__(
+            nInputPorts=1, nOutputPorts=2, outputType="vtkUnstructuredGrid"
+        )
+        self._cylinders = []  # [(col_id, (r, g, b)), ...]
+        self._spheres = []  # [(col_id, (r, g, b)), ...]
+        self._level = 0
+        self._area_fraction = 0.1
+        self._resolution = 32
+
+    def SetCylinders(self, entries):
+        entries = [(int(c), tuple(rgb)) for c, rgb in entries]
+        if entries != self._cylinders:
+            self._cylinders = entries
+            self.Modified()
+
+    def SetSpheres(self, entries):
+        entries = [(int(c), tuple(rgb)) for c, rgb in entries]
+        if entries != self._spheres:
+            self._spheres = entries
+            self.Modified()
+
+    def SetLevel(self, value):
+        if int(value) != self._level:
+            self._level = int(value)
+            self.Modified()
+
+    def SetAreaFraction(self, value):
+        if float(value) != self._area_fraction:
+            self._area_fraction = float(value)
+            self.Modified()
+
+    def SetResolution(self, value):
+        if value != self._resolution:
+            self._resolution = max(3, int(value))
+            self.Modified()
+
+    @staticmethod
+    def _colors_array(colors):
+        array = numpy_support.numpy_to_vtk(
+            np.asarray(colors, dtype=np.uint8).reshape(-1, 3),
+            deep=True,
+            array_type=vtkConstants.VTK_UNSIGNED_CHAR,
+        )
+        array.SetName("colors")
+        return array
+
+    def _footprint(self, corners):
+        """(center lon, center lat, radius lon, radius lat) in degrees"""
+        lon, lat = corners[:, 0], corners[:, 1]
+        center_lon, center_lat = lon.mean(), lat.mean()
+        area_deg = 0.5 * abs(
+            np.dot(lon, np.roll(lat, -1)) - np.dot(lat, np.roll(lon, -1))
+        )
+        # Keep the footprint circular on the sphere
+        cos_lat = max(np.cos(np.radians(center_lat)), 1e-6)
+        r_lat = np.sqrt(self._area_fraction * area_deg * cos_lat / np.pi)
+        return center_lon, center_lat, r_lat / cos_lat, r_lat
+
+    def RequestData(self, request, inInfo, outInfo):
+        volume = vtkUnstructuredGrid.GetData(inInfo[0], 0)
+        out_cylinders = vtkUnstructuredGrid.GetData(outInfo, 0)
+        out_spheres = vtkUnstructuredGrid.GetData(outInfo, 1)
+        out_cylinders.Initialize()
+        out_spheres.Initialize()
+        out_cylinders.SetPoints(vtkPoints())
+        out_spheres.SetPoints(vtkPoints())
+
+        if volume is None or volume.GetNumberOfCells() == 0:
+            return 1
+
+        points = numpy_support.vtk_to_numpy(volume.GetPoints().GetData())
+        hexes = numpy_support.vtk_to_numpy(
+            volume.GetCells().GetConnectivityArray()
+        ).reshape(-1, 8)
+        cell_col_ids = numpy_support.vtk_to_numpy(
+            volume.GetCellData().GetArray("col_id")
+        )
+        cell_levels = numpy_support.vtk_to_numpy(volume.GetCellData().GetArray("level"))
+
+        # Cylinders
+        n_res = self._resolution
+        angles = np.linspace(0, 2 * np.pi, n_res, endpoint=False)
+        cyl_pts, cyl_colors = [], []
+        out_cylinders.Allocate(len(self._cylinders) * (n_res + 2))
+        for col_id, rgb in self._cylinders:
+            col_cells = hexes[cell_col_ids == col_id]
+            if len(col_cells) == 0:
+                continue
+            col_pts = points[col_cells.reshape(-1)]
+            lon, lat, r_lon, r_lat = self._footprint(points[col_cells[0, :4]])
+            z_min, z_max = col_pts[:, 2].min(), col_pts[:, 2].max()
+
+            offset = len(cyl_pts) * 2 * n_res
+            ring = np.column_stack(
+                [lon + r_lon * np.cos(angles), lat + r_lat * np.sin(angles)]
+            )
+            cyl_pts.append(
+                np.vstack(
+                    [
+                        np.column_stack([ring, np.full(n_res, z_min)]),
+                        np.column_stack([ring, np.full(n_res, z_max)]),
+                    ]
+                )
+            )
+            for i in range(n_res):
+                j = (i + 1) % n_res
+                out_cylinders.InsertNextCell(
+                    vtkConstants.VTK_QUAD,
+                    4,
+                    [offset + i, offset + j, offset + n_res + j, offset + n_res + i],
+                )
+            out_cylinders.InsertNextCell(
+                vtkConstants.VTK_POLYGON, n_res, [offset + i for i in range(n_res)]
+            )
+            out_cylinders.InsertNextCell(
+                vtkConstants.VTK_POLYGON,
+                n_res,
+                [offset + n_res + i for i in range(n_res)],
+            )
+            cyl_colors.extend([rgb] * (n_res + 2))
+
+        if cyl_pts:
+            vpoints = vtkPoints()
+            vpoints.SetData(numpy_support.numpy_to_vtk(np.vstack(cyl_pts), deep=True))
+            out_cylinders.SetPoints(vpoints)
+            out_cylinders.GetCellData().AddArray(self._colors_array(cyl_colors))
+
+        # Spheres
+        sphere_pts, sphere_colors, sphere_radius = [], [], []
+        for col_id, rgb in self._spheres:
+            mask = (cell_col_ids == col_id) & (cell_levels == self._level)
+            if not mask.any():
+                continue
+            cell = hexes[mask][0]
+            *_, r_lat = self._footprint(points[cell[:4]])
+            sphere_pts.append(points[cell].mean(axis=0))
+            sphere_colors.append(rgb)
+            sphere_radius.append(r_lat)
+
+        if sphere_pts:
+            vpoints = vtkPoints()
+            vpoints.SetData(
+                numpy_support.numpy_to_vtk(np.vstack(sphere_pts), deep=True)
+            )
+            out_spheres.SetPoints(vpoints)
+            out_spheres.Allocate(len(sphere_pts))
+            for i in range(len(sphere_pts)):
+                out_spheres.InsertNextCell(vtkConstants.VTK_VERTEX, 1, [i])
+            out_spheres.GetPointData().AddArray(self._colors_array(sphere_colors))
+            radius = numpy_support.numpy_to_vtk(np.asarray(sphere_radius), deep=True)
+            radius.SetName("radius")
+            out_spheres.GetPointData().AddArray(radius)
+
+        return 1
