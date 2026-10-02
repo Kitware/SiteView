@@ -74,7 +74,7 @@ class CellTimeChart(TrameComponent):
             select_arrays.EnableArray(field)
 
         data = {}
-        for t in range(self.ctx.setup.time_index_max):
+        for t in range(self.ctx.setup.time_index_max + 1):
             col.SetSlicing(json.dumps({"time": t}))
             col.Update()
             table = col.GetOutputDataObject(0)
@@ -86,7 +86,7 @@ class CellTimeChart(TrameComponent):
                         n_array[idx][altitude_idx]
                     )
 
-        t_array = np.array(range(self.ctx.setup.time_index_max))
+        t_array = np.array(range(self.ctx.setup.time_index_max + 1))
         figs = []
         for field, cols in data.items():
             fig = go.Figure()
@@ -173,7 +173,7 @@ class CellTimeChart(TrameComponent):
                             )
                     v3.VSlider(
                         prepend_icon="mdi-altimeter",
-                        v_model="global.slice.altitude",
+                        v_model="global.hslice.altitude",
                         step="1",
                         min=("global.column.altitude_range[0]",),
                         max=("global.column.altitude_range[1]",),
