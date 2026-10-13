@@ -11,7 +11,7 @@ from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
-from e3sm_siteview.io import EAMColumnSource
+from e3sm_siteview.io import EAMColumnSource, EAMSurfaceSource
 
 NAME = "cellTimeChart"
 COLORS = plotly.colors.qualitative.Plotly
@@ -34,6 +34,10 @@ class CellTimeChart(TrameComponent):
         self.surface_reader = surface_reader
         self.local_data_reader = EAMColumnSource()
         self.local_data_reader.SetDataFileName(self.columns.GetDataFileName())
+        self.local_surface_reader = None
+        if surface_reader is not None:
+            self.local_surface_reader = EAMSurfaceSource()
+            self.local_surface_reader.SetDataFileName(surface_reader.GetDataFileName())
 
         self._build_ui()
         self.bind_reactivity()
@@ -69,30 +73,45 @@ class CellTimeChart(TrameComponent):
         if not fields or not col_ids:
             return
 
-        col = self.local_data_reader
-        col.SetColumnIds(json.dumps(col_ids))
-        select_arrays = col.GetProfileVariables()
-        select_arrays.DisableAllArrays()
-        for field in fields:
-            select_arrays.EnableArray(field)
+        # Split fields between the 3D (column) and 2D (surface) readers
+        readers = []
+        for reader, has_levels in (
+            (self.local_data_reader, True),
+            (self.local_surface_reader, False),
+        ):
+            if reader is None:
+                continue
+            reader_fields = [f for f in fields if f in reader.GetVariables()]
+            if not reader_fields:
+                continue
+            reader.SetColumnIds(json.dumps(col_ids))
+            select_arrays = reader.GetProfileVariables()
+            select_arrays.DisableAllArrays()
+            for field in reader_fields:
+                select_arrays.EnableArray(field)
+            readers.append((reader, reader_fields, has_levels))
 
-        data = {}
+        data = {field: {} for field in fields}
         for t in range(self.ctx.setup.time_index_max + 1):
-            col.SetSlicing(json.dumps({"time": t}))
-            col.Update()
-            table = col.GetOutputDataObject(0)
-            for field in fields:
-                array = table.GetColumnByName(field)
-                n_array = numpy_support.vtk_to_numpy(array)
-                for idx, col_id in enumerate(col_ids):
-                    data.setdefault(field, {}).setdefault(col_id, []).append(
-                        n_array[idx][altitude_idx]
-                    )
+            for reader, reader_fields, has_levels in readers:
+                reader.SetSlicing(json.dumps({"time": t}))
+                reader.Update()
+                table = reader.GetOutputDataObject(0)
+                for field in reader_fields:
+                    array = table.GetColumnByName(field)
+                    n_array = numpy_support.vtk_to_numpy(array)
+                    for idx, col_id in enumerate(col_ids):
+                        value = n_array[idx]
+                        if has_levels:
+                            value = value[altitude_idx]
+                        data[field].setdefault(col_id, []).append(value)
 
         labels = {item["value"]: item["title"] for item in self.ctx.setup.col_items}
         t_array = np.array(range(self.ctx.setup.time_index_max + 1))
         figs = []
         for field, cols in data.items():
+            if not cols:
+                continue
             fig = go.Figure()
             y1 = None
             y0 = None
@@ -153,7 +172,7 @@ class CellTimeChart(TrameComponent):
                     with v3.VSelect(
                         v_model="global.line_chart.fields",
                         items=(
-                            "global.variables_3d.filter(v => v.selected).map(v => v.name)",
+                            "[...global.variables_3d, ...global.variables_2d].filter(v => v.selected).map(v => v.name)",
                         ),
                         density="compact",
                         hide_details=True,
