@@ -151,6 +151,16 @@ class CameraFocus(v3.VCard):
                     )
 
 
+def SliderValue(text, min_width="3.5rem"):
+    """Current value (with units) of a slider, to use in its append slot"""
+    with v3.Template(v_slot_append=True):
+        html.Div(
+            text,
+            classes="text-caption text-medium-emphasis text-no-wrap text-right",
+            style=f"min-width: {min_width};",
+        )
+
+
 class BaseToolbar(v3.VCard):
     def __init__(self, keys, icon):
         super().__init__(
@@ -172,7 +182,7 @@ class ZScale(BaseToolbar):
     def __init__(self):
         super().__init__(keys=["zscale"], icon="mdi-arrow-expand-vertical")
         with self:
-            v3.VSlider(
+            with v3.VSlider(
                 v_show="controls.zscale.show",
                 v_model="controls.zscale.scale",
                 min=1,
@@ -182,7 +192,8 @@ class ZScale(BaseToolbar):
                 density="compact",
                 hide_details=True,
                 classes="mr-4",
-            )
+            ):
+                SliderValue("&times;{{ controls.zscale.scale }}")
 
 
 class Cloud(BaseToolbar):
@@ -204,7 +215,7 @@ class Cloud(BaseToolbar):
                     hide_details=True,
                     variant="flat",
                 )
-                v3.VSlider(
+                with v3.VSlider(
                     v_show="controls.cloud.show",
                     v_model="controls.cloud.threshold_value",
                     min=0,
@@ -213,9 +224,14 @@ class Cloud(BaseToolbar):
                     density="compact",
                     hide_details=True,
                     prepend_icon="mdi-water-opacity",
-                    classes="pr-2",
-                )
-                v3.VSlider(
+                    v_tooltip_top="'Threshold (fraction of the field range)'",
+                    classes="pr-4",
+                ):
+                    # Threshold is relative to the field range of each file
+                    SliderValue(
+                        "≥ {{ (100 * controls.cloud.threshold_value).toFixed(1) }}%"
+                    )
+                with v3.VSlider(
                     v_show="controls.cloud.show",
                     v_model="controls.cloud.opacity",
                     min=0,
@@ -224,8 +240,10 @@ class Cloud(BaseToolbar):
                     density="compact",
                     hide_details=True,
                     prepend_icon="mdi-opacity",
-                    classes="pr-2",
-                )
+                    v_tooltip_top="'Opacity'",
+                    classes="pr-4",
+                ):
+                    SliderValue("{{ Math.round(100 * controls.cloud.opacity) }}%")
 
 
 class Surface(BaseToolbar):
@@ -314,7 +332,7 @@ class HorizontalSlice(BaseToolbar):
     def __init__(self):
         super().__init__(keys=["hslice"], icon="mdi-altimeter")
         with self:
-            v3.VSlider(
+            with v3.VSlider(
                 v_show="controls.hslice.show",
                 v_model="controls.hslice.altitude",
                 step="1",
@@ -324,7 +342,11 @@ class HorizontalSlice(BaseToolbar):
                 density="comfortable",
                 classes="mr-2",
                 style="width: 370px",
-            )
+            ):
+                SliderValue(
+                    "{{ utils.e3sm.formatLevel(controls.column.levels, controls.hslice.altitude) }}",
+                    min_width="4.5rem",
+                )
             EdgeToggle("hslice")
 
 
@@ -332,7 +354,7 @@ class VerticalSlice(BaseToolbar):
     def __init__(self):
         super().__init__(keys=["vslice"], icon="mdi-flip-horizontal")
         with self:
-            v3.VSlider(
+            with v3.VSlider(
                 v_show="controls.vslice.show",
                 v_model="controls.vslice.orientation",
                 step="1",
@@ -342,8 +364,8 @@ class VerticalSlice(BaseToolbar):
                 density="comfortable",
                 classes="mr-2",
                 style="width: 370px",
-                # prepend_icon="mdi-compass-outline",
-            )
+            ):
+                SliderValue("{{ controls.vslice.orientation }}°")
             EdgeToggle("vslice")
             # v3.VNumberInput(
             #     v_show="controls.slice.show",
@@ -457,7 +479,7 @@ class CropColumn(BaseToolbar):
     def __init__(self):
         super().__init__(keys=["column"], icon="mdi-sort")
         with self:
-            v3.VRangeSlider(
+            with v3.VRangeSlider(
                 v_if="controls.column.col_max_idx",
                 v_show="controls.column.show",
                 v_model="controls.column.altitude_range",
@@ -469,7 +491,13 @@ class CropColumn(BaseToolbar):
                 variant="flat",
                 classes="mr-4",
                 style="width: 370px;",
-            )
+            ):
+                # Level 0 is the top of the atmosphere
+                SliderValue(
+                    "{{ utils.e3sm.formatLevel(controls.column.levels, controls.column.altitude_range[0]) }}"
+                    " &ndash; {{ utils.e3sm.formatLevel(controls.column.levels, controls.column.altitude_range[1]) }}",
+                    min_width="8rem",
+                )
 
 
 def _probe_anchor_style(x, y, offset, extra=""):

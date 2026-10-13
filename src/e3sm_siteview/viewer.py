@@ -96,6 +96,10 @@ class E3SMAnalyser(TrameComponent):
                 0,
                 self.ctx.setup.column.col_max_idx,
             )
+            if table.GetFieldData().HasArray("lev"):
+                self.ctx.setup.column.levels = [
+                    float(v) for v in table.field_data["lev"].ravel()
+                ]
 
         self.ctx.setup.register_data_reader(self.columns)
 

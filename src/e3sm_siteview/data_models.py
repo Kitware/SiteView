@@ -104,6 +104,7 @@ class ColumnControls(dataclass.StateDataModel):
         tuple[int, int], (0, 100), type_checking=dataclass.TypeValidation.SKIP
     )
     col_max_idx = dataclass.Sync(int, 0)
+    levels = dataclass.Sync(list[float], list)  # pressure (hPa) per level index
 
 
 class ZScaleControls(dataclass.StateDataModel):

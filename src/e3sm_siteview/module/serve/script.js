@@ -30,6 +30,14 @@ window.trame.utils.e3sm = {
   match(field, query) {
     return field.name.toLowerCase()?.includes(query?.toLowerCase() || "");
   },
+  // Pressure of a level index ("lev" is in hPa for EAM)
+  formatLevel(levels, idx) {
+    const v = levels?.[idx];
+    if (v === undefined) return `level ${idx}`;
+    const txt =
+      v >= 100 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v.toPrecision(2);
+    return `${txt} hPa`;
+  },
   // Adapt a plotly layout to the app theme
   plotlyLayout(layout, dark) {
     if (!dark || !layout) return layout;
