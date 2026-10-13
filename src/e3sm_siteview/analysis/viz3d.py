@@ -76,6 +76,7 @@ COLUMN_MARKER_AREA_FRACTION = 0.05
 COLUMN_MARKER_SPHERE_SCALE = 2  # sphere radius relative to cylinder radius
 COLUMN_MARKER_AMBIENT = 0.5
 HEATMAP_COLUMN_COLOR = (255, 255, 255)
+HISTOGRAM_BINS = 200
 LINE_CHART_COLORS = [
     plotly.colors.hex_to_rgb(c) for c in plotly.colors.qualitative.Plotly
 ]
@@ -157,6 +158,18 @@ def create_north_up_interactor_style(get_rotation_center):
     return style
 
 
+def _snap_bound(values, mask, percentile, bound):
+    """Percentile of the values excluding the extreme one, so a dominant
+    bound value (e.g. lots of 0) does not hide the rest of the distribution.
+    A 0/100 percentile keeps the data bound."""
+    if percentile in (0, 100):
+        return bound
+    values = values[mask]
+    if values.size == 0:
+        return bound
+    return np.percentile(values, percentile)
+
+
 class Viz3D(TrameComponent):
     def __init__(self, server, column_reader):
         super().__init__(server)
@@ -164,6 +177,8 @@ class Viz3D(TrameComponent):
         self.view_handler = None
         self._find_data_valid = False
         self._histogram_key = None
+        self._histogram_data_key = None
+        self._histogram_snap_key = None
         self._projections = []
         self._subscriptions = []
 
@@ -233,23 +248,26 @@ class Viz3D(TrameComponent):
         return self.get_data_array()
 
     def _update_histogram(self, *_):
+        histogram = self.ctx.setup.histogram
         if "histogram" not in self.ctx.setup.active_viz:
             self._histogram_key = None
+            self._histogram_data_key = None
+            self._histogram_snap_key = None
             return
 
         array = self._visible_data_array()
-        bins = self.ctx.setup.histogram.bins
-        discard = self.ctx.setup.histogram.discard
         color_by = self.ctx.setup.volume.color_by
-        key = (
+        data_key = (
             color_by,
-            bins,
-            tuple(sorted(discard)),
             None if array is None else (id(array), array.GetMTime()),
         )
-        if key == self._histogram_key:
+        snap_min, snap_max = histogram.snap_min, histogram.snap_max
+        snap_key = (data_key, snap_min, snap_max)
+        if (
+            snap_key == self._histogram_snap_key
+            and (data_key, tuple(histogram.range)) == self._histogram_key
+        ):
             return
-        self._histogram_key = key
 
         values = np.array([])
         if array is not None:
@@ -257,17 +275,35 @@ class Viz3D(TrameComponent):
             values = values[np.isfinite(values)]
 
         if values.size == 0:
-            self.ctx.setup.histogram.figure = {}
+            self._histogram_key = None
+            self._histogram_data_key = None
+            self._histogram_snap_key = None
+            histogram.figure = {}
             return
 
-        counts, edges = np.histogram(values, bins=bins)
-        start = 1 if "min" in discard else 0
-        end = bins - 1 if "max" in discard else bins
-        counts = counts[start:end]
-        edges = edges[start : end + 1]
-        if counts.size == 0:
-            self.ctx.setup.histogram.figure = {}
-            return
+        # Only (re)apply snapping/clamping when the data or the snap changed
+        # so a user defined range is not overridden.
+        if snap_key != self._histogram_snap_key:
+            data_changed = data_key != self._histogram_data_key
+            self._histogram_snap_key = snap_key
+            self._histogram_data_key = data_key
+            data_min, data_max = float(values.min()), float(values.max())
+            histogram.data_range = (data_min, data_max)
+            lo, hi = histogram.range
+            if data_changed:
+                lo, hi = max(lo, data_min), min(hi, data_max)
+            if snap_min is not None:
+                lo = _snap_bound(values, values > data_min, snap_min, data_min)
+            if snap_max is not None:
+                hi = _snap_bound(values, values < data_max, 100 - snap_max, data_max)
+            if lo >= hi:
+                lo, hi = data_min, data_max
+            histogram.range = (float(lo), float(hi))
+
+        lo, hi = (float(v) for v in histogram.range)
+        self._histogram_key = (data_key, tuple(histogram.range))
+
+        counts, edges = np.histogram(values, bins=HISTOGRAM_BINS, range=(lo, hi))
 
         units = next(
             (v.units for v in self.ctx.setup.variables_3d if v.name == color_by),
@@ -294,7 +330,11 @@ class Viz3D(TrameComponent):
         )
         fig.update_layout(
             title={
-                "text": f"{color_by} ({counts.sum()} cells)",
+                "text": (
+                    f"{color_by} ({counts.sum():,} of {values.size:,} cells)"
+                    if counts.sum() < values.size
+                    else f"{color_by} ({values.size:,} cells)"
+                ),
                 "x": 0.5,
                 "xanchor": "center",
                 "font": {"size": 12},
@@ -777,7 +817,7 @@ class Viz3D(TrameComponent):
         )
         self._subscribe(
             self.ctx.setup.histogram,
-            ["bins", "discard"],
+            ["range", "snap_min", "snap_max"],
             self._update_histogram,
             eager=True,
         )

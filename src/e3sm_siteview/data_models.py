@@ -83,8 +83,16 @@ class FindDataControls(dataclass.StateDataModel):
 
 class HistogramControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
-    bins = dataclass.Sync(int, 50)
-    discard = dataclass.Sync(list[str], list)  # "min", "max" bins to hide
+    data_range = dataclass.Sync(
+        tuple[float, float], (0, 1), type_checking=dataclass.TypeValidation.SKIP
+    )
+    range = dataclass.Sync(
+        tuple[float, float], (0, 1), type_checking=dataclass.TypeValidation.SKIP
+    )
+    # Percentile (0 => data bound) used to snap each bound of the range while
+    # excluding the extreme value. None when the bound is user defined.
+    snap_min = dataclass.Sync(float, 0, type_checking=dataclass.TypeValidation.SKIP)
+    snap_max = dataclass.Sync(float, 0, type_checking=dataclass.TypeValidation.SKIP)
     figure = dataclass.Sync(dict, dict)
 
 

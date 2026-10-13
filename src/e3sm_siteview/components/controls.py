@@ -3,6 +3,8 @@ from contextlib import suppress
 from trame.widgets import dataclass, html
 from trame.widgets import vuetify3 as v3
 
+HISTOGRAM_SNAP_PERCENTILES = [1, *range(5, 100, 5)]
+
 
 class Controls(dataclass.Provider):
     def __init__(self):
@@ -292,7 +294,7 @@ class Histogram(BaseToolbar):
             with v3.VCol(
                 v_show="controls.histogram.show",
                 classes="border-s pa-0",
-                style="width: 370px",
+                style="width: 325px",
             ) as container:
                 container.add_child(
                     '<trame-plotly v-if="controls.histogram.figure.data"'
@@ -301,38 +303,57 @@ class Histogram(BaseToolbar):
                     ' :displayModeBar="false" :displaylogo="false"'
                     ' style="height: 200px;" />'
                 )
-                with html.Div(classes="d-flex align-center pr-2 pb-2"):
-                    v3.VSlider(
-                        v_model="controls.histogram.bins",
-                        min=5,
-                        max=200,
-                        step=5,
-                        density="compact",
-                        hide_details=True,
-                        prepend_icon="mdi-chart-bar",
-                        thumb_label=True,
-                        classes="px-2",
+                v3.VRangeSlider(
+                    model_value=("controls.histogram.range",),
+                    min=("controls.histogram.data_range[0]",),
+                    max=("controls.histogram.data_range[1]",),
+                    step=0,
+                    density="compact",
+                    hide_details=True,
+                    classes="px-2",
+                    # A dragged bound is no longer snapped
+                    update_modelValue=(
+                        "if ($event[0] !== controls.histogram.range[0]) "
+                        "controls.histogram.snap_min = null;"
+                        "if ($event[1] !== controls.histogram.range[1]) "
+                        "controls.histogram.snap_max = null;"
+                        "controls.histogram.range = $event;"
+                    ),
+                )
+                with html.Div(classes="d-flex align-center px-1 pb-1"):
+                    self._snap_menu(0, "min", "max", lambda p: p)
+                    v3.VSpacer()
+                    self._snap_menu(1, "max", "min", lambda p: 100 - p)
+
+    def _snap_menu(self, idx, bound, other_bound, to_percentile):
+        snap = f"controls.histogram.snap_{bound}"
+        other = f"controls.histogram.snap_{other_bound}"
+        with v3.VMenu(location="top", max_height=300):
+            with v3.Template(v_slot_activator="{ props }"):
+                v3.VBtn(
+                    f"{{{{ controls.histogram.range[{idx}].toPrecision(4) }}}}",
+                    v_bind="props",
+                    size="small",
+                    variant="text",
+                    color=(f"{snap} ? 'primary' : undefined",),
+                    append_icon="mdi-menu-down",
+                    classes="text-none px-1",
+                )
+            with v3.VList(density="compact"):
+                v3.VListItem(
+                    title=f"Data {bound}",
+                    active=(f"{snap} === 0",),
+                    click=f"{snap} = 0",
+                )
+                for p in HISTOGRAM_SNAP_PERCENTILES:
+                    v3.VListItem(
+                        title=f"{to_percentile(p)}th percentile",
+                        subtitle=f"excluding data {bound}",
+                        active=(f"{snap} === {p}",),
+                        # Prevent crossing the other snapped bound
+                        disabled=(f"{other} > 0 && {p} >= 100 - {other}",),
+                        click=f"{snap} = {p}",
                     )
-                    with v3.VBtnToggle(
-                        v_model="controls.histogram.discard",
-                        multiple=True,
-                        density="compact",
-                        variant="outlined",
-                        divided=True,
-                        color="primary",
-                    ):
-                        v3.VBtn(
-                            "Min",
-                            value="min",
-                            size="small",
-                            v_tooltip_bottom="'Discard min bin'",
-                        )
-                        v3.VBtn(
-                            "Max",
-                            value="max",
-                            size="small",
-                            v_tooltip_bottom="'Discard max bin'",
-                        )
 
 
 class CropColumn(BaseToolbar):
