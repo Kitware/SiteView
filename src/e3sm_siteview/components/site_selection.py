@@ -146,22 +146,23 @@ class SiteSelection(v3.VRow):
                             variant="outlined",
                             divided=True,
                             mandatory=True,
-                            classes="mt-1 pr-4",
+                            classes="mt-1 mr-1",
                             size="small",
                         ):
                             v3.VBtn("km", value="km", classes="text-none")
                             v3.VBtn("deg", value="deg", classes="text-none")
 
-                        v3.VBtn(
-                            "Load {{ config.n_cols }} column{{ config.n_cols > 1 && 's' || '' }}",
-                            classes="text-none mt-1",
-                            variant="flat",
-                            color="primary",
-                            size="large",
-                            append_icon="mdi-chevron-right",
-                            height=48,
-                            click=next_fn,
-                        )
+                    v3.VBtn(
+                        "Load {{ config.n_cols }} column{{ config.n_cols > 1 && 's' || '' }}",
+                        classes="text-none mt-1",
+                        variant="flat",
+                        color="primary",
+                        size="large",
+                        append_icon="mdi-chevron-right",
+                        height=48,
+                        click=next_fn,
+                        block=True,
+                    )
 
                 with v3.VCol():
                     CoordinatePreview()
