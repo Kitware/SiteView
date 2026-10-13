@@ -2,6 +2,40 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-10-13)
+
+### Bug Fixes
+
+- **chart**: Allow to plot surface variable
+  ([`cff8b9a`](https://github.com/Kitware/SiteView/commit/cff8b9a79313ef1f99105b172f36d79daa0df702))
+
+- **color**: Sync 3d and plotly
+  ([`bc628b7`](https://github.com/Kitware/SiteView/commit/bc628b7d80e87a43af740f535b99d7e9893916c8))
+
+- **continents**: Use more precise borders
+  ([`9be72ea`](https://github.com/Kitware/SiteView/commit/9be72ea1af341eca620e0c668aa21c1ab25fdbde))
+
+- **histogram**: Improve usability
+  ([`5dcb104`](https://github.com/Kitware/SiteView/commit/5dcb10423a9ac15438798aa1a6d4115bbb89d279))
+
+- **orientation**: Properly layout data vertically
+  ([`dceaaf5`](https://github.com/Kitware/SiteView/commit/dceaaf51e28af691381bc0696cdfa0964e3306f5))
+
+- **reader**: Add surface reader
+  ([`4931f6c`](https://github.com/Kitware/SiteView/commit/4931f6c80a1ebfcd950557d0b9026b720a66e3cd))
+
+- **site-selection**: Improve layout of site selection
+  ([`8fcb310`](https://github.com/Kitware/SiteView/commit/8fcb3108d351afd99164f01a3f3f08bea081fa63))
+
+### Features
+
+- **col**: Enable picking for column selection
+  ([`6083ced`](https://github.com/Kitware/SiteView/commit/6083ced49edea955ee5b16429787f58261ec92d3))
+
+- **surface**: Integrate into 3d view
+  ([`d9f96b1`](https://github.com/Kitware/SiteView/commit/d9f96b15a6a5f101a5971b4a2501dda1eeebe418))
+
+
 ## v1.2.0 (2026-10-02)
 
 ### Bug Fixes
