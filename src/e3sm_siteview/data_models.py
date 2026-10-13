@@ -325,6 +325,15 @@ class GlobalParameters(dataclass.StateDataModel):
         self._enable_selected(self.surface_readers, self.variables_2d)
         self._enable_selected(self.readers, self.variables_3d)
 
+        # Color by loaded fields only
+        for controls, variables in (
+            (self.surface, self.variables_2d),
+            (self.volume, self.variables_3d),
+        ):
+            selected = [f.name for f in variables if f.selected]
+            if controls.color_by not in selected:
+                controls.color_by = selected[0] if selected else None
+
     @dataclass.watch("time_value", sync=True)
     def update_reader_time(self, time_value):
         slice_desc = json.dumps({"time": time_value})

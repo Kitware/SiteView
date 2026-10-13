@@ -282,6 +282,123 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
         return 1
 
 
+@smproxy.filter(name="EAMColumnSurface", label="EAM Column Surface")
+@smproperty.input(name="Surface", port_index=1)
+@smdomain.datatype(dataTypes=["vtkTable"], composite_data_supported=False)
+@smproperty.input(name="Mesh", port_index=0)
+@smdomain.datatype(dataTypes=["vtkPolyData"], composite_data_supported=False)
+class EAMColumnSurface(VTKPythonAlgorithmBase):
+    """Build the 2D footprint of the selected columns, colored by surface fields.
+
+    Inputs:
+      * port 0 (Mesh):    EAMMeshSource vtkPolyData (2D column cells + col_id)
+      * port 1 (Surface): EAMSurfaceSource vtkTable (one row per column)
+
+    Each table row becomes the matching mesh cell at z = 0 (the ground, in the
+    EAMColumnVolume convention) so it goes through EAMProject like the volume.
+    Every table column (including col_id) is mapped to cell data.
+    """
+
+    def __init__(self):
+        super().__init__(
+            nInputPorts=2, nOutputPorts=1, outputType="vtkUnstructuredGrid"
+        )
+
+    def FillInputPortInformation(self, port, info):
+        info.Set(
+            self.INPUT_REQUIRED_DATA_TYPE(),
+            "vtkPolyData" if port == 0 else "vtkTable",
+        )
+        return 1
+
+    def RequestData(self, request, inInfo, outInfo):
+        with _perf.timed("column_surface.RequestData"):
+            return self._RequestDataImpl(inInfo, outInfo)
+
+    def _RequestDataImpl(self, inInfo, outInfo):
+        mesh = vtkPolyData.GetData(inInfo[0], 0)
+        table = vtkTable.GetData(inInfo[1], 0)
+        output = vtkUnstructuredGrid.GetData(outInfo, 0)
+        output.Initialize()
+
+        if mesh is None or table is None:
+            print_error("EAMColumnSurface: requires both Mesh and Surface inputs")
+            return 0
+
+        n = table.GetNumberOfRows()
+        colid_col = table.GetColumnByName("col_id")
+        if n == 0 or colid_col is None:
+            return 1  # nothing selected yet
+        col_ids = numpy_support.vtk_to_numpy(colid_col).reshape(-1)
+
+        # Map each column id to its mesh cell
+        mesh_colid = mesh.GetCellData().GetArray("col_id")
+        if mesh_colid is not None:
+            mc = numpy_support.vtk_to_numpy(mesh_colid).reshape(-1)
+            colid_to_cell = np.full(int(mc.max()) + 1, -1, dtype=np.int64)
+            colid_to_cell[mc] = np.arange(mc.size)
+        else:
+            colid_to_cell = np.arange(mesh.GetNumberOfCells(), dtype=np.int64)
+        valid = (col_ids >= 0) & (col_ids < colid_to_cell.size)
+        cell_ids = np.where(valid, colid_to_cell[np.where(valid, col_ids, 0)], -1)
+        if (cell_ids < 0).any():
+            missing = col_ids[cell_ids < 0].tolist()
+            print_error(f"EAMColumnSurface: col_id {missing} not present in mesh")
+            return 0
+
+        # Gather the selected polygons (any corner count) from the mesh
+        polys = mesh.GetPolys()
+        offsets = numpy_support.vtk_to_numpy(polys.GetOffsetsArray())
+        conn = numpy_support.vtk_to_numpy(polys.GetConnectivityArray())
+        starts = offsets[cell_ids]
+        sizes = offsets[cell_ids + 1] - starts
+        new_offsets = np.concatenate([[0], np.cumsum(sizes)]).astype(np.int64)
+        gather = np.repeat(starts - new_offsets[:-1], sizes) + np.arange(
+            new_offsets[-1]
+        )
+        point_ids = conn[gather]
+
+        # Keep only the used points (compact), flattened onto the ground
+        used, new_conn = np.unique(point_ids, return_inverse=True)
+        mesh_pts = numpy_support.vtk_to_numpy(mesh.GetPoints().GetData())
+        pts_np = np.array(mesh_pts[used], dtype=np.float32)
+        pts_np[:, 2] = 0.0
+
+        vpoints = vtkPoints()
+        vpoints.SetData(
+            numpy_support.numpy_to_vtk(
+                np.ascontiguousarray(pts_np), deep=True, array_type=vtkConstants.VTK_FLOAT
+            )
+        )
+        output.SetPoints(vpoints)
+
+        cells = vtkCellArray()
+        cells.SetData(
+            numpy_support.numpy_to_vtk(
+                new_offsets, deep=True, array_type=vtkConstants.VTK_ID_TYPE
+            ),
+            numpy_support.numpy_to_vtk(
+                np.ascontiguousarray(new_conn.reshape(-1), dtype=np.int64),
+                deep=True,
+                array_type=vtkConstants.VTK_ID_TYPE,
+            ),
+        )
+        cell_types = np.full(n, vtkConstants.VTK_POLYGON, dtype=np.uint8)
+        output.SetCells(
+            numpy_support.numpy_to_vtk(
+                cell_types, deep=True, array_type=vtkConstants.VTK_UNSIGNED_CHAR
+            ),
+            cells,
+        )
+
+        # One cell per row: table columns map directly to cell data
+        cd = output.GetCellData()
+        for i in range(table.GetNumberOfColumns()):
+            cd.AddArray(table.GetColumn(i))
+
+        return 1
+
+
 class EAMLevelCylinder(VTKPythonAlgorithmBase):
     """Wireframe cylinder wrapping the vertical extent of an EAMColumnVolume.
 

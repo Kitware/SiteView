@@ -25,12 +25,13 @@ def min_max(array, min_value, max_value):
 
 
 class CellTimeChart(TrameComponent):
-    def __init__(self, server, column_reader):
+    def __init__(self, server, column_reader, surface_reader=None):
         super().__init__(server)
         self._id = next(ANALYSIS_ID)
         self._subscriptions = []
 
         self.columns = column_reader
+        self.surface_reader = surface_reader
         self.local_data_reader = EAMColumnSource()
         self.local_data_reader.SetDataFileName(self.columns.GetDataFileName())
 

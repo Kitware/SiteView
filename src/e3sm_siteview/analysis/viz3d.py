@@ -8,7 +8,7 @@ from trame.app import TrameComponent
 from trame.dataclasses.colormaps import ColormapConfig
 from trame.decorators import controller
 from trame.ui.html import DivLayout
-from trame.widgets import colormaps, html, rca
+from trame.widgets import html, rca
 from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 from vtkmodules.vtkCommonCore import vtkMath
@@ -54,6 +54,7 @@ from e3sm_siteview.io import (
     EARTH_RADIUS,
     EARTH_TEXTURE_PATH,
     EAMColumnMarkers,
+    EAMColumnSurface,
     EAMColumnVolume,
     EAMGridLines,
     EAMLevelCylinder,
@@ -171,7 +172,7 @@ def _snap_bound(values, mask, percentile, bound):
 
 
 class Viz3D(TrameComponent):
-    def __init__(self, server, column_reader):
+    def __init__(self, server, column_reader, surface_reader=None):
         super().__init__(server)
         self._id = next(ANALYSIS_ID)
         self.view_handler = None
@@ -196,6 +197,14 @@ class Viz3D(TrameComponent):
         self.horizontal_slice.SetInputConnection(0, self.ctx.mesh_algo.GetOutputPort())
         self.horizontal_slice.SetInputConnection(1, self.columns.GetOutputPort())
         self.horizontal_slice.Update()
+
+        # Surface (2D fields) on the ground footprint of the columns
+        self.surface_reader = surface_reader
+        self.surface_colormap_config = ColormapConfig(self.server, preset="Inferno")
+        self.surface = EAMColumnSurface()
+        self.surface.SetInputConnection(0, self.ctx.mesh_algo.GetOutputPort())
+        if surface_reader is not None:
+            self.surface.SetInputConnection(1, surface_reader.GetOutputPort())
 
         self._setup_vtk()
         self._build_ui()
@@ -224,6 +233,14 @@ class Viz3D(TrameComponent):
 
         return ds.cell_data[self.ctx.setup.volume.color_by]
 
+    def get_surface_data_array(self):
+        color_by = self.ctx.setup.surface.color_by
+        if not color_by or self.surface_reader is None:
+            return None
+        self.surface.Update()
+        # None (not VTKNoneArray) when not loaded yet, colormap skips it
+        return self.surface.GetOutputDataObject(0).GetCellData().GetArray(color_by)
+
     def _proj(self):
         proj = EAMProject()
         proj.SetProjection(3)  # spherical
@@ -231,6 +248,7 @@ class Viz3D(TrameComponent):
         return proj
 
     def refresh_data(self):
+        self._on_surface_color_by_change(self.ctx.setup.surface.color_by)
         self._update_histogram()
         self._need_render()
 
@@ -501,6 +519,21 @@ class Viz3D(TrameComponent):
         )
         self.colormap_config.register_mapper(self.find_data_mapper)
 
+        # Surface
+        self.surface_mapper = vtkDataSetMapper()
+        self.surface_mapper.ScalarVisibilityOn()
+        self.surface_mapper.SetColorModeToMapScalars()
+        self.surface_mapper.SetScalarModeToUseCellFieldData()
+        self.surface_actor = vtkActor(
+            mapper=self.surface_mapper,
+            force_opaque=1,
+            visibility=0,
+        )
+        self.renderer.AddActor(self.surface_actor)
+        if self.surface_reader is not None:
+            self.surface >> self._proj() >> self.surface_mapper
+        self.surface_colormap_config.register_mapper(self.surface_mapper)
+
         # Level cylinder
         self.level_cylinder = EAMLevelCylinder()
         self.level_cylinder.SetCenter(*self.ctx.setup.center[:2])
@@ -765,6 +798,12 @@ class Viz3D(TrameComponent):
             eager=True,
         )
         self._subscribe(
+            self.ctx.setup.surface,
+            ["color_by"],
+            self._on_surface_color_by_change,
+            eager=True,
+        )
+        self._subscribe(
             self.ctx.setup.column, ["altitude_range"], self._on_column_height_change
         )
         self._subscribe(
@@ -823,12 +862,16 @@ class Viz3D(TrameComponent):
         )
         self._subscribe(self.colormap_config, ["mapper_change"], self._need_render)
         self._subscribe(
+            self.surface_colormap_config, ["mapper_change"], self._need_render
+        )
+        self._subscribe(
             self.colormap_config,
             ["mapper_change"],
             self._sync_chart_colormap,
             eager=True,
         )
         self.ctrl.update_color_range.add(self.colormap_config.update_color_range)
+        self.ctrl.update_color_range.add(self._update_surface_color_range)
 
     def unbind_reactivity(self):
         while self._subscriptions:
@@ -908,6 +951,7 @@ class Viz3D(TrameComponent):
         self.volume_actor.visibility = 0
         self.threshold_actor.visibility = 1 if has_cloud else 0
         self.find_data_actor.visibility = 1 if has_find else 0
+        self.surface_actor.visibility = 1 if "surface" in active_viz else 0
 
         if has_volume:
             self.volume_actor.visibility = 1
@@ -930,6 +974,17 @@ class Viz3D(TrameComponent):
             self.colormap_config.set_data_array(color_by, self.get_data_array, "cell")
         self._update_histogram()
         self.view_handler.update()
+
+    def _on_surface_color_by_change(self, color_by):
+        if color_by and self.surface_reader is not None:
+            self.surface_colormap_config.set_data_array(
+                color_by, self.get_surface_data_array, "cell"
+            )
+        self.view_handler.update()
+
+    def _update_surface_color_range(self):
+        if self.ctx.setup.surface.color_by and self.surface_reader is not None:
+            self.surface_colormap_config.update_color_range()
 
     def _on_column_height_change(self, altitude_range):
         self.volume.SetLevelRange(*altitude_range)
@@ -1026,9 +1081,27 @@ class Viz3D(TrameComponent):
                     controls.Histogram()
                     controls.CropColumn()
 
-                with controls.BottomCenterFloatControls():
-                    with self.colormap_config.provide_as("colormap"):
-                        colormaps.HorizontalScalarBar("colormap", popup_location="top")
+                with (
+                    controls.Controls(),
+                    controls.BottomCenterFloatControls(),
+                    self.colormap_config.provide_as("colormap"),
+                    self.surface_colormap_config.provide_as("surface_colormap"),
+                ):
+                    controls.TitledScalarBar(
+                        "surface_colormap",
+                        "controls.surface.color_by",
+                        v_if=(
+                            "controls.active_viz.includes('surface')"
+                            " && controls.surface.color_by"
+                        ),
+                    )
+                    controls.TitledScalarBar(
+                        "colormap",
+                        "controls.volume.color_by",
+                        v_if=(
+                            "['volume', 'hslice', 'vslice', 'find_data'].some(v => controls.active_viz.includes(v))"
+                        ),
+                    )
 
 
 register_analysis(NAME, Viz3D)

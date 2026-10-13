@@ -1,6 +1,6 @@
 from contextlib import suppress
 
-from trame.widgets import dataclass, html
+from trame.widgets import colormaps, dataclass, html
 from trame.widgets import vuetify3 as v3
 
 HISTOGRAM_SNAP_PERCENTILES = [1, *range(5, 100, 5)]
@@ -20,12 +20,47 @@ class TopLeftFloatControls(html.Div):
         )
 
 
-class BottomCenterFloatControls(v3.VCard):
+class BottomCenterFloatControls(html.Div):
     def __init__(self):
         super().__init__(
-            style="position:absolute;left:1rem;right:1rem;bottom:1rem;height:1rem;z-index:100;",
+            style="position:absolute;left:1rem;right:1rem;bottom:1rem;z-index:100;",
             classes="d-flex flex-column ga-2 align-center",
         )
+
+
+class TitledScalarBar(html.Div):
+    """Horizontal scalar bar with a title, also shown in its preset editor.
+
+    ``name`` is the provided ColormapConfig name, ``label`` a static text
+    (e.g. "Volume") and ``field`` a JS expression of the colored field name.
+    """
+
+    def __init__(self, name, field, **kwargs):
+        super().__init__(
+            classes="d-flex align-center w-100 flex-column overflow-hidden", **kwargs
+        )
+        title = f"{{{{ {field} }}}}"
+        with self:
+            html.Div(
+                title,
+                title=(f"`${{{field}}}`",),
+                classes="text-caption font-weight-medium text-white px-2 text-no-wrap text-truncate",
+                style="flex-shrink:0;max-width:100%;",
+            )
+            with colormaps.HorizontalScalarBar(name, has_menu=False) as bar:
+                bar.classes += " rounded"
+                with v3.VMenu(
+                    v_model=f"{name}.menu",
+                    activator="parent",
+                    location="top",
+                    close_on_content_click=False,
+                ):
+                    with v3.VCard(style="width: fit-content;"):
+                        html.Div(
+                            title,
+                            classes="text-subtitle-2 px-4 pt-2 text-truncate",
+                        )
+                        colormaps.ColorMapEditor(name, flat=True, style="height: 50vh;")
 
 
 class TopRightFloatControls(v3.VCard):

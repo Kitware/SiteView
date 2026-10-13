@@ -4,10 +4,10 @@ from pathlib import Path
 REGISTRY = {}
 
 
-def create_analysis(type, server, reader):
+def create_analysis(type, server, reader, surface_reader=None):
     klass = REGISTRY.get(type)
     if klass:
-        return klass(server, reader)
+        return klass(server, reader, surface_reader)
     return None
 
 

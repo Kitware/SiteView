@@ -72,7 +72,9 @@ class GeneralControls(v3.VFooter):
                         icon="mdi-arrow-expand-vertical",
                         value="zscale",
                     )
-                    # TooltipButton("Surface", icon="mdi-layers-outline", value="surface")
+                    TooltipButton(
+                        "'Surface fields'", icon="mdi-layers-outline", value="surface"
+                    )
                     TooltipButton(
                         "'Volume rendering'", icon="mdi-cube-outline", value="volume"
                     )

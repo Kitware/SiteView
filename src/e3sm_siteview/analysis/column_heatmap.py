@@ -17,12 +17,13 @@ NAME = "columnHeatMap"
 
 
 class ColumnHeatMap(TrameComponent):
-    def __init__(self, server, column_reader):
+    def __init__(self, server, column_reader, surface_reader=None):
         super().__init__(server)
         self._id = next(ANALYSIS_ID)
         self._subscriptions = []
 
         self.columns = column_reader
+        self.surface_reader = surface_reader
         self.single_column_reader = EAMColumnSource()
         self.single_column_reader.SetDataFileName(self.columns.GetDataFileName())
 

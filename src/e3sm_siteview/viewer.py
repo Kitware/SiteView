@@ -133,7 +133,7 @@ class E3SMAnalyser(TrameComponent):
     def add_analysis(self, *analysis_types):
         panels = {}
         for type in analysis_types:
-            analysis = create_analysis(type, self.server, self.columns)
+            analysis = create_analysis(type, self.server, self.columns, self.surface)
             if analysis is None:
                 msg = f"Invalid analysis type: {type}"
                 raise ValueError(msg)
