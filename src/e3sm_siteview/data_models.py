@@ -64,11 +64,13 @@ class ColorByControls(dataclass.StateDataModel):
 class VSliceControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
     orientation = dataclass.Sync(int, 0)
+    edges = dataclass.Sync(bool, True)
 
 
 class HSliceControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
     altitude = dataclass.Sync(int, 0)
+    edges = dataclass.Sync(bool, True)
 
 
 class FindDataControls(dataclass.StateDataModel):

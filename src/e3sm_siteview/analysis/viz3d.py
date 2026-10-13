@@ -947,6 +947,18 @@ class Viz3D(TrameComponent):
             self._on_orientation_slice_change,
             eager=True,
         )
+        self._subscribe(
+            self.ctx.setup.hslice,
+            ["edges"],
+            self._on_hslice_edges_change,
+            eager=True,
+        )
+        self._subscribe(
+            self.ctx.setup.vslice,
+            ["edges"],
+            self._on_vslice_edges_change,
+            eager=True,
+        )
 
         self._subscribe(
             self.ctx.setup.cloud,
@@ -1136,6 +1148,14 @@ class Viz3D(TrameComponent):
         self.horizontal_slice.SetLevelRange(level, level)
         self.ctrl.update_color_range.enable_empty()()
         self._update_histogram()
+        self.view_handler.update()
+
+    def _on_hslice_edges_change(self, edges):
+        self.slice_h_actor.property.edge_visibility = edges
+        self.view_handler.update()
+
+    def _on_vslice_edges_change(self, edges):
+        self.slice_v_actor.property.edge_visibility = edges
         self.view_handler.update()
 
     def _on_orientation_slice_change(self, heading):

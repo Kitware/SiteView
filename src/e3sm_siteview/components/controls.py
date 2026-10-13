@@ -250,6 +250,22 @@ class Volume(BaseToolbar):
         self.ctx.setup.volume.color_by = items[idx_found]
 
 
+class EdgeToggle(v3.VBtn):
+    """Toggle the cell edges of the controls.<key> slice"""
+
+    def __init__(self, key):
+        edges = f"controls.{key}.edges"
+        super().__init__(
+            v_show=f"controls.{key}.show",
+            v_tooltip_top=(f"{edges} ? 'Hide edges' : 'Show edges'",),
+            icon=(f"{edges} ? 'mdi-grid' : 'mdi-grid-off'",),
+            density="comfortable",
+            variant="plain",
+            classes="rounded ma-1",
+            click=f"{edges} = !{edges}",
+        )
+
+
 class HorizontalSlice(BaseToolbar):
     def __init__(self):
         super().__init__(keys=["hslice"], icon="mdi-altimeter")
@@ -262,9 +278,10 @@ class HorizontalSlice(BaseToolbar):
                 max=("controls.column.altitude_range[1]",),
                 hide_details=True,
                 density="comfortable",
-                classes="mr-4",
+                classes="mr-2",
                 style="width: 370px",
             )
+            EdgeToggle("hslice")
 
 
 class VerticalSlice(BaseToolbar):
@@ -279,10 +296,11 @@ class VerticalSlice(BaseToolbar):
                 max=[180],
                 hide_details=True,
                 density="comfortable",
-                classes="mr-4",
+                classes="mr-2",
                 style="width: 370px",
                 # prepend_icon="mdi-compass-outline",
             )
+            EdgeToggle("vslice")
             # v3.VNumberInput(
             #     v_show="controls.slice.show",
             #     v_model="controls.slice.orientation",
