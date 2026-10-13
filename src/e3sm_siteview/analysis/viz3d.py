@@ -40,6 +40,7 @@ from vtkmodules.vtkRenderingCore import (
     vtkAssembly,
     vtkBillboardTextActor3D,
     vtkCamera,
+    vtkCellPicker,
     vtkDataSetMapper,
     vtkRenderer,
     vtkRenderWindow,
@@ -49,6 +50,7 @@ from vtkmodules.vtkRenderingCore import (
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
 from e3sm_siteview.components import controls
+from e3sm_siteview.data_models import ProbeInfo
 from e3sm_siteview.io import (
     CONTINENT_PATH,
     EARTH_RADIUS,
@@ -85,6 +87,9 @@ LINE_CHART_COLORS = [
 # Find data: cells where the formula evaluates to true (1)
 FIND_DATA_ARRAY = "__find_data__"
 
+# Probe: max mouse motion (pixels) between press and release to be a click
+CLICK_TOLERANCE = 3
+
 
 def _rotate_camera(camera, angle, axis, center):
     """Rotate camera around an axis going through center"""
@@ -96,16 +101,19 @@ def _rotate_camera(camera, angle, axis, center):
     camera.focal_point = transform.TransformPoint(camera.focal_point)
 
 
-def create_north_up_interactor_style(get_rotation_center):
+def create_north_up_interactor_style(get_rotation_center, on_hover=None, on_click=None):
     """
     Trackball camera style where left-drag rotates the camera around
     an axis parallel to the earth rotation axis going through
     get_rotation_center() (horizontal motion) and tilts it toward the
     poles (vertical motion) while keeping north up.
     Middle/right buttons and wheel keep their default pan/zoom behavior.
+
+    on_hover(x, y) is called on mouse move without button pressed and
+    on_click(x, y) on a left press/release without dragging.
     """
     style = vtkInteractorStyleTrackballCamera()
-    state = {"rotating": False}
+    state = {"rotating": False, "press_position": None}
 
     def on_left_press(*_):
         interactor = style.GetInteractor()
@@ -113,13 +121,26 @@ def create_north_up_interactor_style(get_rotation_center):
         if style.GetCurrentRenderer() is None:
             return
         state["rotating"] = True
+        state["press_position"] = interactor.GetEventPosition()
 
     def on_left_release(*_):
         state["rotating"] = False
+        press_position = state["press_position"]
+        state["press_position"] = None
+        if on_click is None or press_position is None:
+            return
+        x, y = style.GetInteractor().GetEventPosition()
+        if (
+            abs(x - press_position[0]) <= CLICK_TOLERANCE
+            and abs(y - press_position[1]) <= CLICK_TOLERANCE
+        ):
+            on_click(x, y)
 
     def on_mouse_move(*_):
         if not state["rotating"]:
             style.OnMouseMove()
+            if on_hover is not None:
+                on_hover(*style.GetInteractor().GetEventPosition())
             return
 
         interactor = style.GetInteractor()
@@ -185,6 +206,7 @@ class Viz3D(TrameComponent):
 
         self.columns = column_reader
         self.colormap_config = ColormapConfig(self.server, preset="Viridis")
+        self.probe = ProbeInfo(self.server)
 
         self.volume = EAMColumnVolume()
         self.volume.SetInputConnection(0, self.ctx.mesh_algo.GetOutputPort())
@@ -408,7 +430,11 @@ class Viz3D(TrameComponent):
 
         renderWindowInteractor = vtkRenderWindowInteractor()
         renderWindowInteractor.SetRenderWindow(renderWindow)
-        self.interactor_style = create_north_up_interactor_style(self._rotation_center)
+        self.interactor_style = create_north_up_interactor_style(
+            self._rotation_center,
+            on_hover=self._on_probe_hover,
+            on_click=self._on_probe_click,
+        )
         renderWindowInteractor.SetInteractorStyle(self.interactor_style)
 
         self.render_window = renderWindow
@@ -706,6 +732,18 @@ class Viz3D(TrameComponent):
         self.orientation_widget.EnabledOn()
         self.orientation_widget.InteractiveOff()
 
+        # Probe: pick the columns on the visible data (hidden actors are skipped)
+        self.probe_picker = vtkCellPicker(tolerance=0.0005)
+        self.probe_picker.PickFromListOn()
+        for actor in (
+            self.volume_actor,
+            self.slice_h_actor,
+            self.slice_v_actor,
+            self.find_data_actor,
+            self.surface_actor,
+        ):
+            self.probe_picker.AddPickList(actor)
+
         self._reset_camera()
 
     def _update_site_marker(self):
@@ -786,6 +824,77 @@ class Viz3D(TrameComponent):
                 actor.visibility = 1
             else:
                 actor.visibility = 0
+
+    def _probe_active(self):
+        return "probes" in self.ctx.setup.active_viz
+
+    def _pick_column(self, x, y):
+        """(col_id, lat/lon label) of the column at the display position"""
+        if not self.probe_picker.Pick(x, y, 0, self.renderer):
+            return None
+        ds = self.probe_picker.GetDataSet()
+        cell_id = self.probe_picker.GetCellId()
+        col_ids = ds.GetCellData().GetArray("col_id") if ds is not None else None
+        if col_ids is None or cell_id < 0:
+            return None
+        col_id = int(col_ids.GetTuple1(cell_id))
+        title = next(
+            (
+                item["title"]
+                for item in self.ctx.setup.col_items
+                if item["value"] == col_id
+            ),
+            str(col_id),
+        )
+        return col_id, title
+
+    def _view_fractions(self, x, y):
+        """Display position to fractions of the view size from the top left"""
+        width, height = self.render_window.GetSize()
+        return x / max(width, 1), 1 - y / max(height, 1)
+
+    def _on_probe_hover(self, x, y):
+        if not self._probe_active():
+            return
+        picked = self._pick_column(x, y)
+        if picked is None:
+            self.probe.hover = False
+            return
+        self.probe.hover_x, self.probe.hover_y = self._view_fractions(x, y)
+        self.probe.hover_title = picked[1]
+        self.probe.hover = True
+
+    def _on_probe_click(self, x, y):
+        if not self._probe_active():
+            return
+        picked = self._pick_column(x, y)
+        if picked is None:
+            self.probe.menu = False
+            return
+        self.probe.menu_x, self.probe.menu_y = self._view_fractions(x, y)
+        self.probe.menu_col_id, self.probe.menu_title = picked
+        self.probe.menu = True
+
+    def _show_analysis(self, name):
+        active_analysis = self.ctx.setup.active_analysis
+        if name not in active_analysis:
+            self.ctx.setup.active_analysis = [*active_analysis, name]
+
+    def probe_to_heatmap(self):
+        self.ctx.setup.surface_chart.column = self.probe.menu_col_id
+        self._show_analysis("columnHeatMap")
+        self.probe.menu = False
+
+    def probe_toggle_line_chart(self):
+        col_id = self.probe.menu_col_id
+        columns = list(self.ctx.setup.line_chart.columns)
+        if col_id in columns:
+            columns.remove(col_id)
+        else:
+            columns.append(col_id)
+            self._show_analysis("cellTimeChart")
+        self.ctx.setup.line_chart.columns = columns
+        self.probe.menu = False
 
     def _subscribe(self, obj, watch, callback, eager=False, sync=False):
         self._subscriptions.append(obj.watch(watch, callback, eager=eager, sync=sync))
@@ -953,6 +1062,10 @@ class Viz3D(TrameComponent):
         self.find_data_actor.visibility = 1 if has_find else 0
         self.surface_actor.visibility = 1 if "surface" in active_viz else 0
 
+        if "probes" not in active_viz:
+            self.probe.hover = False
+            self.probe.menu = False
+
         if has_volume:
             self.volume_actor.visibility = 1
             self.outline_actor.visibility = 0
@@ -1057,10 +1170,18 @@ class Viz3D(TrameComponent):
 
     def _build_ui(self):
         with DivLayout(self.server, self.name, classes="h-100") as self.ui:
-            with html.Div(
-                style="position:absolute;top:0;left:0;width:100%;height:100%;"
+            with (
+                self.ctx.setup.provide_as("global"),
+                self.probe.provide_as("probe"),
+                html.Div(
+                    style="position:absolute;top:0;left:0;width:100%;height:100%;",
+                    mouseleave="probe.hover = false",
+                ),
             ):
-                view = rca.RemoteControlledArea(display="image")
+                view = rca.RemoteControlledArea(
+                    display="image",
+                    send_mouse_move=("global.active_viz.includes('probes')",),
+                )
                 self.view_handler = view.create_view_handler(
                     self.render_window,
                     encoder="turbo-jpeg",
@@ -1069,6 +1190,12 @@ class Viz3D(TrameComponent):
 
                 with controls.Controls(), controls.TopRightFloatControls():
                     controls.CameraFocus(reset_camera=self.ctrl.reset_camera)
+
+                controls.ProbeTooltip()
+                controls.ProbeMenu(
+                    use_for_heatmap=self.probe_to_heatmap,
+                    toggle_line_chart=self.probe_toggle_line_chart,
+                )
 
                 with controls.Controls(), controls.TopLeftFloatControls():
                     controls.ZScale()

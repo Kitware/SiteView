@@ -408,3 +408,71 @@ class CropColumn(BaseToolbar):
                 classes="mr-4",
                 style="width: 370px;",
             )
+
+
+def _probe_anchor_style(x, y, offset, extra=""):
+    """Absolute position at (x, y) view fractions, flipped to stay in view"""
+    return (
+        f"`position:absolute;z-index:200;left:${{100 * {x}}}%;top:${{100 * {y}}}%;"
+        f"transform:translate(${{{x} > 0.5 ? 'calc(-100% - {offset}px)' : '{offset}px'}},"
+        f" ${{{y} > 0.5 ? 'calc(-100% - {offset}px)' : '{offset}px'}});{extra}`"
+    )
+
+
+class ProbeTooltip(html.Div):
+    """Lat/lon of the hovered column (needs the "probe" provider)"""
+
+    def __init__(self):
+        super().__init__(
+            "{{ probe.hover_title }}",
+            v_if="probe.hover",
+            classes="text-caption text-white bg-grey-darken-3 rounded px-2 py-1 text-no-wrap elevation-2",
+            # Keep the mouse events for the 3D view
+            style=(
+                _probe_anchor_style(
+                    "probe.hover_x", "probe.hover_y", 12, "pointer-events:none;"
+                ),
+            ),
+        )
+
+
+class ProbeMenu(v3.VCard):
+    """Use the clicked column in the charts (needs the "probe" and "global" providers)"""
+
+    def __init__(self, use_for_heatmap, toggle_line_chart):
+        in_line_chart = "global.line_chart.columns.includes(probe.menu_col_id)"
+        super().__init__(
+            v_if="probe.menu",
+            density="compact",
+            style=(_probe_anchor_style("probe.menu_x", "probe.menu_y", 4),),
+        )
+        with self:
+            with v3.VCardItem(
+                prepend_icon="mdi-map-marker-outline", classes="py-1 pr-1"
+            ):
+                html.Div("{{ probe.menu_title }}", classes="text-subtitle-2")
+                with v3.Template(v_slot_append=True):
+                    v3.VBtn(
+                        icon="mdi-close",
+                        size="small",
+                        variant="plain",
+                        density="comfortable",
+                        click="probe.menu = false",
+                    )
+            v3.VDivider()
+            with v3.VList(density="compact", classes="py-0"):
+                v3.VListItem(
+                    prepend_icon="mdi-view-grid-compact",
+                    title="Use for column heat map",
+                    active=("global.surface_chart.column === probe.menu_col_id",),
+                    click=use_for_heatmap,
+                )
+                v3.VListItem(
+                    prepend_icon=(
+                        f"{in_line_chart} ? 'mdi-chart-line-variant' : 'mdi-chart-line'",
+                    ),
+                    title=(
+                        f"{in_line_chart} ? 'Remove from line chart' : 'Add to line chart'",
+                    ),
+                    click=toggle_line_chart,
+                )

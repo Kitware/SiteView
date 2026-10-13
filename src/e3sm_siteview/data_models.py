@@ -109,6 +109,20 @@ class ZScaleControls(dataclass.StateDataModel):
     scale = dataclass.Sync(float, 500, type_checking=dataclass.TypeValidation.SKIP)
 
 
+class ProbeInfo(dataclass.StateDataModel):
+    # Hovered column (x, y are fractions of the view size from the top left)
+    hover = dataclass.Sync(bool, False)
+    hover_x = dataclass.Sync(float, 0, type_checking=dataclass.TypeValidation.SKIP)
+    hover_y = dataclass.Sync(float, 0, type_checking=dataclass.TypeValidation.SKIP)
+    hover_title = dataclass.Sync(str, "")
+    # Clicked column: menu to use it in the charts
+    menu = dataclass.Sync(bool, False)
+    menu_x = dataclass.Sync(float, 0, type_checking=dataclass.TypeValidation.SKIP)
+    menu_y = dataclass.Sync(float, 0, type_checking=dataclass.TypeValidation.SKIP)
+    menu_title = dataclass.Sync(str, "")
+    menu_col_id = dataclass.Sync(int, -1)
+
+
 class VisualizationAnalysis(dataclass.StateDataModel):
     panels = dataclass.Sync(dict[str, str], dict)
 
