@@ -848,6 +848,25 @@ class Viz3D(TrameComponent):
         )
         return col_id, title
 
+    def _picked_value(self):
+        """'field: value units' of the colored field on the last picked cell"""
+        if self.probe_picker.GetActor() is self.surface_actor:
+            field, variables = (
+                self.ctx.setup.surface.color_by,
+                self.ctx.setup.variables_2d,
+            )
+        else:
+            field, variables = (
+                self.ctx.setup.volume.color_by,
+                self.ctx.setup.variables_3d,
+            )
+        array = self.probe_picker.GetDataSet().GetCellData().GetArray(field or "")
+        if array is None:
+            return ""
+        value = array.GetTuple1(self.probe_picker.GetCellId())
+        units = next((v.units for v in variables if v.name == field), None)
+        return f"{field}: {value:.4g}{f' {units}' if units else ''}"
+
     def _view_fractions(self, x, y):
         """Display position to fractions of the view size from the top left"""
         width, height = self.render_window.GetSize()
@@ -862,6 +881,7 @@ class Viz3D(TrameComponent):
             return
         self.probe.hover_x, self.probe.hover_y = self._view_fractions(x, y)
         self.probe.hover_title = picked[1]
+        self.probe.hover_value = self._picked_value()
         self.probe.hover = True
 
     def _on_probe_click(self, x, y):

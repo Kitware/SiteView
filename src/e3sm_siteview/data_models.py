@@ -115,6 +115,7 @@ class ProbeInfo(dataclass.StateDataModel):
     hover_x = dataclass.Sync(float, 0, type_checking=dataclass.TypeValidation.SKIP)
     hover_y = dataclass.Sync(float, 0, type_checking=dataclass.TypeValidation.SKIP)
     hover_title = dataclass.Sync(str, "")
+    hover_value = dataclass.Sync(str, "")
     # Clicked column: menu to use it in the charts
     menu = dataclass.Sync(bool, False)
     menu_x = dataclass.Sync(float, 0, type_checking=dataclass.TypeValidation.SKIP)

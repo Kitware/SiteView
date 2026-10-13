@@ -420,11 +420,10 @@ def _probe_anchor_style(x, y, offset, extra=""):
 
 
 class ProbeTooltip(html.Div):
-    """Lat/lon of the hovered column (needs the "probe" provider)"""
+    """Lat/lon and value of the hovered column (needs the "probe" provider)"""
 
     def __init__(self):
         super().__init__(
-            "{{ probe.hover_title }}",
             v_if="probe.hover",
             classes="text-caption text-white bg-grey-darken-3 rounded px-2 py-1 text-no-wrap elevation-2",
             # Keep the mouse events for the 3D view
@@ -434,6 +433,13 @@ class ProbeTooltip(html.Div):
                 ),
             ),
         )
+        with self:
+            html.Div("{{ probe.hover_title }}")
+            html.Div(
+                "{{ probe.hover_value }}",
+                v_if="probe.hover_value",
+                classes="font-weight-medium",
+            )
 
 
 class ProbeMenu(v3.VCard):
