@@ -3,6 +3,7 @@ from trame.ui.vuetify3 import VAppLayout
 from trame.widgets import colormaps, dockview, plotly, rca
 from trame.widgets import vuetify3 as v3
 
+from e3sm_siteview import constants
 from e3sm_siteview.assets import ASSETS
 from e3sm_siteview.components import field_selection, footer, site_selection, welcome
 from e3sm_siteview.viewer import create_viewers
@@ -26,7 +27,15 @@ class E3smSiteView(TrameApp):
         colormaps.initialize(self.server)
         plotly.initialize(self.server)
 
-        with VAppLayout(self.server, fill_height=True) as self.ui:
+        # Theme shared by vuetify (app) and dockview
+        self.ctx.setup.watch(["dark"], self._on_theme_change, eager=True)
+
+        with VAppLayout(
+            self.server,
+            fill_height=True,
+            vuetify_config=constants.VUETIFY_CONFIG,
+            theme=("siteview_theme",),
+        ) as self.ui:
             with v3.VLayout():
                 with self.ctx.setup.provide_as("controls"):
                     with v3.VDialog(
@@ -61,8 +70,17 @@ class E3smSiteView(TrameApp):
                             field_selection.FieldSelection(self._load_fields)
 
                 with v3.VMain():
-                    dockview.DockView(ctx_name="views_container", theme="Light")
+                    dockview.DockView(
+                        ctx_name="views_container",
+                        theme=("siteview_dockview_theme",),
+                    )
                 footer.GeneralControls()
+
+    def _on_theme_change(self, dark):
+        # Async watcher: flush the state explicitly
+        with self.state:
+            self.state.siteview_theme = "siteviewDark" if dark else "siteviewLight"
+            self.state.siteview_dockview_theme = "Dark" if dark else "Light"
 
     def _select_region(self):
         if not self.ctx.setup.data_loaded:

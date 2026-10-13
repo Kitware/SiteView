@@ -155,6 +155,7 @@ class GlobalParameters(dataclass.StateDataModel):
     # General workflow
     active_page = dataclass.Sync(str, "welcome")  # welcome, site, fields, viz
     data_loaded = dataclass.Sync(bool, False)
+    dark = dataclass.Sync(bool, False)  # UI theme
     # Time
     time_values = dataclass.Sync(list[int], list)
     time_index = dataclass.Sync(int, 0)

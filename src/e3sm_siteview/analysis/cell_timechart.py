@@ -147,6 +147,8 @@ class CellTimeChart(TrameComponent):
                 yaxis={"title": {"text": field}},
                 margin={"b": 0, "l": 0, "r": 0, "t": 0},
                 plot_bgcolor="white",
+                # Plotly hides the legend of single trace charts
+                showlegend=True,
             )
 
             figs.append(encode(fig.to_plotly_json()))
@@ -164,9 +166,7 @@ class CellTimeChart(TrameComponent):
                 ),
             ):
                 with v3.VToolbar(
-                    density="compact",
-                    classes="px-2 d-flex ga-2 bg-grey-darken-3",
-                    theme="dark",
+                    density="compact", classes="px-2 d-flex ga-2 border-b"
                 ):
                     v3.VIcon("mdi-chart-line")
                     with v3.VSelect(
@@ -222,7 +222,7 @@ class CellTimeChart(TrameComponent):
                         ),
                     ) as container:
                         container.add_child(
-                            '<trame-plotly :data="v.data" :layout="v.layout" :displayModeBar="false" :displaylogo="false" />'
+                            '<trame-plotly :key="global.dark" :data="v.data" :layout="utils.e3sm.plotlyLayout(v.layout, global.dark)" :displayModeBar="false" :displaylogo="false" />'
                         )
 
 

@@ -67,6 +67,22 @@ NAME = "viz"
 
 CAMERA = vtkCamera()
 
+# 3D view colors per UI theme (background is the bottom of the gradient)
+VIEW_THEMES = {
+    "light": {
+        "background": (0.70, 0.74, 0.78),
+        "background2": (0.93, 0.95, 0.96),
+        "earth": (0.67, 0.67, 0.67),
+        "lines": (0.15, 0.15, 0.15),
+    },
+    "dark": {
+        "background": (0.04, 0.07, 0.09),
+        "background2": (0.15, 0.21, 0.25),
+        "earth": (0.30, 0.33, 0.36),
+        "lines": (0.75, 0.78, 0.80),
+    },
+}
+
 EARTH_AXIS = (0, 1, 0)
 
 # Orientation marker site cylinder (textured sphere source has radius 0.5)
@@ -423,7 +439,7 @@ class Viz3D(TrameComponent):
             self.view_handler.update()
 
     def _setup_vtk(self):
-        renderer = vtkRenderer(background=(0.5, 0.5, 0.5), active_camera=CAMERA)
+        renderer = vtkRenderer(active_camera=CAMERA, gradient_background=True)
         renderWindow = vtkRenderWindow()
         renderWindow.AddRenderer(renderer)
         renderWindow.OffScreenRenderingOn()
@@ -638,29 +654,23 @@ class Viz3D(TrameComponent):
 
         self.earth_actor.property.render_lines_as_tubes = 1
         self.earth_actor.property.line_width = 1.0
-        self.earth_actor.property.ambient_color = (0, 0, 0)
-        self.earth_actor.property.diffuse_color = (0, 0, 0)
 
         # Earth sphere
         sphere = vtkSphereSource(
             radius=EARTH_RADIUS - 10000, theta_resolution=180, phi_resolution=360
         )
         sphere_mapper = vtkDataSetMapper()
-        sphere_actor = vtkActor(mapper=sphere_mapper)
-        sphere_actor.property.ambient_color = (0.67, 0.67, 0.67)
-        sphere_actor.property.diffuse_color = (0.67, 0.67, 0.67)
+        self.sphere_actor = vtkActor(mapper=sphere_mapper)
         sphere >> sphere_mapper
-        self.renderer.AddActor(sphere_actor)
+        self.renderer.AddActor(self.sphere_actor)
 
         # Earth grid
         self.grid = EAMGridLines()
         self.grid.SetInterval(10)
         grid_mapper = vtkDataSetMapper()
-        grid_actor = vtkActor(mapper=grid_mapper)
-        grid_actor.property.ambient_color = (0, 0, 0)
-        grid_actor.property.diffuse_color = (0, 0, 0)
+        self.grid_actor = vtkActor(mapper=grid_mapper)
         self.grid >> self._proj() >> grid_mapper
-        self.renderer.AddActor(grid_actor)
+        self.renderer.AddActor(self.grid_actor)
 
         # Orientation marker: textured earth
         earth_texture = vtkTexture(interpolate=1, mipmap=1)
@@ -980,6 +990,7 @@ class Viz3D(TrameComponent):
             self.ctx.setup.zscale, ["scale"], self._on_z_scale_change, eager=True
         )
         self._subscribe(self.ctx.setup, ["camera_focus"], self._on_camera_focus_change)
+        self._subscribe(self.ctx.setup, ["dark"], self._on_theme_change, eager=True)
         self._subscribe(
             self.ctx.setup, ["active_analysis"], self._on_column_markers_change
         )
@@ -1072,6 +1083,18 @@ class Viz3D(TrameComponent):
 
     def _on_camera_focus_change(self, *_):
         self._reset_camera()
+
+    def _on_theme_change(self, dark):
+        theme = VIEW_THEMES["dark" if dark else "light"]
+        self.renderer.background = theme["background"]
+        self.renderer.background2 = theme["background2"]
+        self.sphere_actor.property.ambient_color = theme["earth"]
+        self.sphere_actor.property.diffuse_color = theme["earth"]
+        for actor in (self.earth_actor, self.grid_actor):
+            actor.property.ambient_color = theme["lines"]
+            actor.property.diffuse_color = theme["lines"]
+        if self.view_handler:
+            self.view_handler.update()
 
     def _on_region_change(self, center, radius_deg):
         self.level_cylinder.SetCenter(center[0], center[1])

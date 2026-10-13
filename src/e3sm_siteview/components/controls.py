@@ -44,7 +44,7 @@ class TitledScalarBar(html.Div):
             html.Div(
                 title,
                 title=(f"`${{{field}}}`",),
-                classes="text-caption font-weight-medium text-white px-2 text-no-wrap text-truncate",
+                classes="text-caption font-weight-medium text-high-emphasis px-2 text-no-wrap text-truncate",
                 style="flex-shrink:0;max-width:100%;",
             )
             with colormaps.HorizontalScalarBar(name, has_menu=False) as bar:
@@ -350,9 +350,9 @@ class Histogram(BaseToolbar):
                 style="width: 325px",
             ) as container:
                 container.add_child(
-                    '<trame-plotly v-if="controls.histogram.figure.data"'
+                    '<trame-plotly :key="controls.dark" v-if="controls.histogram.figure.data"'
                     ' :data="controls.histogram.figure.data"'
-                    ' :layout="controls.histogram.figure.layout"'
+                    ' :layout="utils.e3sm.plotlyLayout(controls.histogram.figure.layout, controls.dark)"'
                     ' :displayModeBar="false" :displaylogo="false"'
                     ' style="height: 200px;" />'
                 )

@@ -145,3 +145,13 @@ class GeneralControls(v3.VFooter):
                     density="compact",
                     hide_details=True,
                 )
+
+            v3.VSpacer(v_if="!controls.data_loaded")
+            TooltipButton(
+                "controls.dark ? 'Light theme' : 'Dark theme'",
+                icon=("controls.dark ? 'mdi-weather-sunny' : 'mdi-weather-night'",),
+                variant="text",
+                density="comfortable",
+                classes="ml-2",
+                click="controls.dark = !controls.dark",
+            )

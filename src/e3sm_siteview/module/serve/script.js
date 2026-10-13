@@ -9,4 +9,22 @@ window.trame.utils.e3sm = {
   match(field, query) {
     return field.name.toLowerCase()?.includes(query?.toLowerCase() || "");
   },
+  // Adapt a plotly layout to the app theme
+  plotlyLayout(layout, dark) {
+    if (!dark) return layout;
+    const axis = (a) => ({
+      ...a,
+      gridcolor: "rgba(255, 255, 255, 0.1)",
+      zerolinecolor: "rgba(255, 255, 255, 0.25)",
+      linecolor: "rgba(255, 255, 255, 0.25)",
+    });
+    return {
+      ...layout,
+      paper_bgcolor: "rgba(0, 0, 0, 0)",
+      plot_bgcolor: "rgba(0, 0, 0, 0)",
+      font: { ...layout?.font, color: "rgba(255, 255, 255, 0.87)" },
+      xaxis: axis(layout?.xaxis),
+      yaxis: axis(layout?.yaxis),
+    };
+  },
 };

@@ -116,7 +116,13 @@ class E3SMAnalyser(TrameComponent):
 
     def _build_ui(self):
         with DivLayout(self.server, self.template_name, classes="h-100") as self.ui:
-            with v3.VContainer(classes="h-100 pa-0", fluid=True):
+            # Dock panels live outside of v-app, so provide the app theme
+            with (
+                v3.VThemeProvider(
+                    theme=("siteview_theme",), with_background=True, classes="h-100"
+                ),
+                v3.VContainer(classes="h-100 pa-0", fluid=True),
+            ):
                 with (
                     v3.VRow(dense=True, classes="h-100"),
                     self.config.provide_as("conf"),
