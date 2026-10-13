@@ -286,7 +286,15 @@ class ColumnHeatMap(TrameComponent):
                         ),
                     ) as container:
                         container.add_child(
-                            '<trame-plotly :data="v.data" :layout="v.layout" :displayModeBar="false" :displaylogo="false" />'
+                            '<trame-plotly :data="v.data.map((d) => ({ ...d,'
+                            # Use the 3D view colormap preset for every field
+                            " ...(global.surface_chart.colorscale.length"
+                            " ? { colorscale: global.surface_chart.colorscale } : {}),"
+                            # Only the field colored in the 3D view shares its color range
+                            " ...(v.field === global.volume.color_by && global.surface_chart.color_range.length === 2"
+                            " ? { zauto: false, zmin: global.surface_chart.color_range[0],"
+                            " zmax: global.surface_chart.color_range[1] } : {}),"
+                            ' }))" :layout="v.layout" :displayModeBar="false" :displaylogo="false" />'
                         )
                         v3.VBtn(
                             v_if="v.removable",

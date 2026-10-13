@@ -822,6 +822,12 @@ class Viz3D(TrameComponent):
             eager=True,
         )
         self._subscribe(self.colormap_config, ["mapper_change"], self._need_render)
+        self._subscribe(
+            self.colormap_config,
+            ["mapper_change"],
+            self._sync_chart_colormap,
+            eager=True,
+        )
         self.ctrl.update_color_range.add(self.colormap_config.update_color_range)
 
     def unbind_reactivity(self):
@@ -830,6 +836,27 @@ class Viz3D(TrameComponent):
 
     def _need_render(self, *_):
         self.view_handler.update()
+
+    def _sync_chart_colormap(self, *_):
+        lut = self.volume_mapper.GetLookupTable()
+        n_colors = lut.GetNumberOfTableValues() if lut else 0
+        if n_colors < 2:
+            return
+
+        colorscale = []
+        for i in range(n_colors):
+            r, g, b, _ = lut.GetTableValue(i)
+            colorscale.append(
+                [
+                    i / (n_colors - 1),
+                    f"rgb({round(r * 255)},{round(g * 255)},{round(b * 255)})",
+                ]
+            )
+
+        self.ctx.setup.surface_chart.colorscale = colorscale
+        self.ctx.setup.surface_chart.color_range = list(
+            self.colormap_config.color_range
+        )
 
     def _on_z_scale_change(self, zscale):
         for projection_filter in self._projections:

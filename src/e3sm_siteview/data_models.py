@@ -118,6 +118,9 @@ class DrappedChart(dataclass.StateDataModel):
     column = dataclass.Sync(int, 0)
     extra_fields = dataclass.Sync(list[str], list)
     results = dataclass.Sync(list, list)
+    # Mirror of the 3D view colormap (plotly colorscale + [min, max])
+    colorscale = dataclass.Sync(list, list)
+    color_range = dataclass.Sync(list, list)
 
 
 class CellTimeCharts(dataclass.StateDataModel):
