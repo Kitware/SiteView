@@ -12,10 +12,59 @@ class Controls(dataclass.Provider):
         self.instance = self.ctx.setup._id
 
 
+# (key, icon, tooltip) of the 3D view layers/tools
+VIZ_LAYERS = [
+    ("cloud", "mdi-weather-cloudy", "Clouds"),
+    ("zscale", "mdi-arrow-expand-vertical", "Vertical scaling"),
+    ("surface", "mdi-layers-outline", "Surface fields"),
+    ("volume", "mdi-cube-outline", "Volume rendering"),
+    ("hslice", "mdi-altimeter", "Horizontal slice"),
+    ("vslice", "mdi-flip-horizontal", "Vertical slice"),
+    ("find_data", "mdi-magnify-scan", "Find data"),
+    ("histogram", "mdi-chart-histogram", "Histogram"),
+    ("column", "mdi-sort", "Column cropping"),
+    ("probes", "mdi-map-marker-plus", "Probes"),
+]
+
+
+class LeftFloatControls(html.Div):
+    """Left column of the 3D view: layer rail and camera controls"""
+
+    def __init__(self):
+        super().__init__(
+            style="position:absolute;left:1rem;top:1rem;z-index:100;",
+            classes="d-flex flex-column ga-2",
+        )
+
+
+class VizLayerRail(v3.VCard):
+    """Vertical toggles of the 3D view layers/tools"""
+
+    def __init__(self):
+        super().__init__(classes="d-flex flex-column pa-1 ga-1")
+        with self:
+            for key, icon, tooltip in VIZ_LAYERS:
+                active = f"controls.active_viz.includes('{key}')"
+                v3.VBtn(
+                    icon=icon,
+                    v_tooltip_end=f"'{tooltip}'",
+                    color=(f"{active} ? 'primary' : undefined",),
+                    variant=(f"{active} ? 'tonal' : 'text'",),
+                    density="comfortable",
+                    classes="rounded",
+                    click=(
+                        f"controls.active_viz = {active}"
+                        f" ? controls.active_viz.filter(v => v !== '{key}')"
+                        f" : [...controls.active_viz, '{key}']"
+                    ),
+                )
+
+
 class TopLeftFloatControls(html.Div):
     def __init__(self):
         super().__init__(
-            style="position:absolute;left:1rem;top:1rem;width:0px;z-index:100;",
+            # Right of the VizLayerRail
+            style="position:absolute;left:4.5rem;top:1rem;width:0px;z-index:100;",
             classes="d-flex flex-column ga-2 align-start",
         )
 
@@ -63,17 +112,12 @@ class TitledScalarBar(html.Div):
                         colormaps.ColorMapEditor(name, flat=True, style="height: 50vh;")
 
 
-class TopRightFloatControls(v3.VCard):
-    def __init__(self):
-        super().__init__(style="position:absolute;right:1rem;top:1rem;z-index:100;")
-
-
-class CameraFocus(html.Div):
+class CameraFocus(v3.VCard):
     def __init__(self, reset_camera):
-        super().__init__(classes="d-flex flex-column align-center")
+        super().__init__(classes="d-flex flex-column align-center pa-1")
         is_earth = "controls.camera_focus === 'earth'"
         with self:
-            with v3.VTooltip(text="Reset camera", location="start"):
+            with v3.VTooltip(text="Reset camera", location="end"):
                 with v3.Template(v_slot_activator="{ props }"):
                     v3.VBtn(
                         v_bind="props",
@@ -89,7 +133,7 @@ class CameraFocus(html.Div):
                     f"{is_earth} ? 'Earth focus: rotate around earth center' "
                     ": 'Data focus: rotate around data bottom'",
                 ),
-                location="start",
+                location="end",
             ):
                 with v3.Template(v_slot_activator="{ props }"):
                     v3.VBtn(

@@ -1,6 +1,8 @@
 from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 
+from e3sm_siteview import __version__ as app_version
+
 STEPS = [
     {
         "title": "Select your site location and region size",
@@ -32,7 +34,7 @@ class Welcome(v3.VCard):
                 with v3.Template(v_slot_prepend=True):
                     with v3.VAvatar(color="primary", size="48"):
                         v3.VIcon(icon="mdi-map-marker-radius", size="28")
-                v3.VCardTitle("Welcome to SiteView", classes="text-h5")
+                v3.VCardTitle(f"Welcome to SiteView v{app_version}", classes="text-h5")
                 v3.VCardSubtitle(
                     "Explore E3SM simulation data around a site of interest"
                 )

@@ -1,12 +1,35 @@
 from trame.app import TrameApp
 from trame.ui.vuetify3 import VAppLayout
-from trame.widgets import colormaps, dockview, plotly, rca
+from trame.widgets import colormaps, dockview, html, plotly, rca
 from trame.widgets import vuetify3 as v3
 
 from e3sm_siteview import constants
 from e3sm_siteview.assets import ASSETS
-from e3sm_siteview.components import field_selection, footer, site_selection, welcome
+from e3sm_siteview.components import (
+    field_selection,
+    footer,
+    header,
+    site_selection,
+    welcome,
+)
 from e3sm_siteview.viewer import create_viewers
+
+
+class DialogTitle(v3.VCardTitle):
+    """Setup dialog title, closable once data is loaded (needs "controls")"""
+
+    def __init__(self, title):
+        super().__init__(classes="d-flex align-center")
+        with self:
+            html.Span(title)
+            v3.VSpacer()
+            v3.VBtn(
+                v_if="controls.data_loaded",
+                icon="mdi-close",
+                variant="text",
+                density="comfortable",
+                click="controls.active_page = 'viz'",
+            )
 
 
 class E3smSiteView(TrameApp):
@@ -37,6 +60,7 @@ class E3smSiteView(TrameApp):
             theme=("siteview_theme",),
         ) as self.ui:
             with v3.VLayout():
+                header.AppHeader()
                 with self.ctx.setup.provide_as("controls"):
                     with v3.VDialog(
                         absolute=True,
@@ -45,7 +69,9 @@ class E3smSiteView(TrameApp):
                         scrollable=True,
                         max_width="640",
                     ):
-                        welcome.Welcome("controls.active_page = 'site'")
+                        welcome.Welcome(
+                            "controls.active_page = controls.data_loaded ? 'viz' : 'site'"
+                        )
 
                     with v3.VDialog(
                         absolute=True,
@@ -54,7 +80,7 @@ class E3smSiteView(TrameApp):
                         scrollable=True,
                     ):
                         with v3.VCard(rounded="lg"):
-                            v3.VCardTitle("Select your site location and region size")
+                            DialogTitle("Select your site location and region size")
                             v3.VDivider()
                             site_selection.SiteSelection(self._select_region)
 
@@ -65,7 +91,7 @@ class E3smSiteView(TrameApp):
                         scrollable=True,
                     ):
                         with v3.VCard(rounded="lg"):
-                            v3.VCardTitle("Select fields to load")
+                            DialogTitle("Select fields to load")
                             v3.VDivider()
                             field_selection.FieldSelection(self._load_fields)
 
@@ -74,7 +100,7 @@ class E3smSiteView(TrameApp):
                         ctx_name="views_container",
                         theme=("siteview_dockview_theme",),
                     )
-                footer.GeneralControls()
+                footer.TimeControls()
 
     def _on_theme_change(self, dark):
         # Async watcher: flush the state explicitly

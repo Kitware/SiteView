@@ -1251,14 +1251,15 @@ class Viz3D(TrameComponent):
                 )
                 self.ctrl.render.add(self.view_handler.update)
 
-                with controls.Controls(), controls.TopRightFloatControls():
-                    controls.CameraFocus(reset_camera=self.ctrl.reset_camera)
-
                 controls.ProbeTooltip()
                 controls.ProbeMenu(
                     use_for_heatmap=self.probe_to_heatmap,
                     toggle_line_chart=self.probe_toggle_line_chart,
                 )
+
+                with controls.Controls(), controls.LeftFloatControls():
+                    controls.VizLayerRail()
+                    controls.CameraFocus(reset_camera=self.ctrl.reset_camera)
 
                 with controls.Controls(), controls.TopLeftFloatControls():
                     controls.ZScale()
