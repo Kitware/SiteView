@@ -47,15 +47,19 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
                            with lev/ilev pressure coordinate field data)
 
     Each selected column's quad is extruded through the vertical ilev interfaces
-    into a stack of hexahedra (one per lev layer). Point z is the ilev pressure
-    (pressure-as-z, matching the EAMProject spherical convention, so this grid
-    drops into the same projection path). lev variables map directly to cells;
+    into a stack of hexahedra (one per lev layer). Point z is PressureRef minus
+    the ilev pressure, where PressureRef is the largest (surface) interface
+    pressure: z is 0 at the ground and grows with altitude, matching the
+    EAMProject spherical convention, so this grid drops into the same
+    projection path. PressureRef is stored as the ``pressure_ref`` field data
+    array (single value). lev variables map directly to cells;
     ilev variables are averaged between adjacent interfaces. LevelRange extracts
     a contiguous subset of layers.
     """
 
     LEV = "lev"
     ILEV = "ilev"
+    PRESSURE_REF = "pressure_ref"
 
     def __init__(self):
         super().__init__(
@@ -105,15 +109,14 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
         fd = table.GetFieldData()
         ilev = fd.GetAbstractArray(cls.ILEV)
         if ilev is not None:
-            iface = numpy_support.vtk_to_numpy(ilev).reshape(-1).astype(np.float64)
-            return iface[::-1].copy()
+            return numpy_support.vtk_to_numpy(ilev).reshape(-1).astype(np.float64)
         lev = fd.GetAbstractArray(cls.LEV)
         if lev is not None:
             levp = numpy_support.vtk_to_numpy(lev).reshape(-1).astype(np.float64)
             mids = 0.5 * (levp[:-1] + levp[1:])
             top = levp[0] - (mids[0] - levp[0])
             bot = levp[-1] + (levp[-1] - mids[-1])
-            return np.concatenate([[top], mids, [bot]])[::-1].copy()
+            return np.concatenate([[top], mids, [bot]])
         return None
 
     # -- execution ------------------------------------------------------------
@@ -164,7 +167,10 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
             return 0
         n_layers = lmax - lmin + 1
         n_iface = n_layers + 1
-        iface_z = iface_z_all[lmin : lmin + n_iface]
+        # Height-like z: 0 at the surface interface, growing upward. The
+        # reference comes from all levels so LevelRange keeps positions stable.
+        p_ref = float(iface_z_all.max())
+        iface_z = p_ref - iface_z_all[lmin : lmin + n_iface]
 
         # Map each column id to its cell in the mesh, then gather the 4 corners.
         mesh_colid = mesh.GetCellData().GetArray("col_id")
@@ -189,7 +195,7 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
                 corner_lon[j, c] = px
                 corner_lat[j, c] = py
 
-        # Points: (column, interface, corner) -> (lon, lat, pressure).
+        # Points: (column, interface, corner) -> (lon, lat, p_ref - pressure).
         lonb = np.broadcast_to(corner_lon[:, None, :], (n, n_iface, 4))
         latb = np.broadcast_to(corner_lat[:, None, :], (n, n_iface, 4))
         zb = np.broadcast_to(iface_z[None, :, None], (n, n_iface, 4))
@@ -232,6 +238,12 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
             cells,
         )
 
+        p_ref_arr = numpy_support.numpy_to_vtk(
+            np.array([p_ref], dtype=np.float64), deep=True
+        )
+        p_ref_arr.SetName(self.PRESSURE_REF)
+        output.GetFieldData().AddArray(p_ref_arr)
+
         # Cell data: identity arrays plus the mapped variables.
         cd = output.GetCellData()
         self._add_cell_array(
@@ -273,7 +285,8 @@ class EAMColumnVolume(VTKPythonAlgorithmBase):
 class EAMLevelCylinder(VTKPythonAlgorithmBase):
     """Wireframe cylinder wrapping the vertical extent of an EAMColumnVolume.
 
-    Input is the (unprojected) column volume: points are (lon, lat, pressure).
+    Input is the (unprojected) column volume: points are
+    (lon, lat, pressure_ref - pressure).
     Output is an unstructured grid in the same space, so it can go through
     EAMProject like the volume:
       * a circle of Radius degrees around Center (same lon/lat metric as the
@@ -329,6 +342,9 @@ class EAMLevelCylinder(VTKPythonAlgorithmBase):
         if volume is None or volume.GetNumberOfPoints() == 0:
             return 1
 
+        p_ref_arr = volume.GetFieldData().GetArray(EAMColumnVolume.PRESSURE_REF)
+        p_ref = p_ref_arr.GetValue(0) if p_ref_arr is not None else 0.0
+
         z_min, z_max = volume.GetBounds()[4:6]
         z_splits = np.linspace(z_min, z_max, self._n_splits + 1)
 
@@ -365,7 +381,7 @@ class EAMLevelCylinder(VTKPythonAlgorithmBase):
         label_array.SetName("labels")
         label_array.SetNumberOfValues(len(all_pts))
         for r, z in enumerate(z_splits):
-            label_array.SetValue(n_rings * n_res + r, f"{z:.1f} hPa")
+            label_array.SetValue(n_rings * n_res + r, f"{p_ref - z:.1f} hPa")
         output.GetPointData().AddArray(label_array)
 
         return 1
@@ -374,7 +390,8 @@ class EAMLevelCylinder(VTKPythonAlgorithmBase):
 class EAMColumnMarkers(VTKPythonAlgorithmBase):
     """Markers for a set of columns of an EAMColumnVolume.
 
-    Input is the (unprojected) column volume: points are (lon, lat, pressure).
+    Input is the (unprojected) column volume: points are
+    (lon, lat, pressure_ref - pressure).
     Outputs are unstructured grids in the same space, so they can go through
     EAMProject like the volume:
       * port 0: one vertical cylinder per column set with SetCylinders(),

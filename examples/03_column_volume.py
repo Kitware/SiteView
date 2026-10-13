@@ -2,9 +2,10 @@
 
 The mesh (EAMMeshSource) and the profile table (EAMColumnSource) feed the
 two-input EAMColumnVolume filter, which extrudes each column's quad through the
-ilev interfaces into a stack of hexahedra. Point z is the ilev pressure; lev
-variables become cell data directly and ilev variables are averaged between
-interfaces. LevelRange carves out a vertical subset with no re-read.
+ilev interfaces into a stack of hexahedra. Point z is the surface pressure minus
+the ilev pressure (0 at the ground, growing upward); lev variables become cell
+data directly and ilev variables are averaged between interfaces. LevelRange
+carves out a vertical subset with no re-read.
 """
 
 import json
@@ -42,7 +43,10 @@ def main():
     print(
         f"full grid       : {ug.GetNumberOfCells()} hexahedra, {ug.GetNumberOfPoints()} points"
     )
-    print(f"z (pressure)    : {zvals.min():.2f} .. {zvals.max():.2f} hPa")
+    p_ref = ug.GetFieldData().GetArray("pressure_ref").GetValue(0)
+    print(
+        f"pressure        : {p_ref - zvals.max():.2f} .. {p_ref - zvals.min():.2f} hPa"
+    )
     print(f"cell arrays     : {cell_arrays}")
 
     vol.SetLevelRange(10, 20)
