@@ -132,6 +132,7 @@ class CellTimeCharts(dataclass.StateDataModel):
 class GlobalParameters(dataclass.StateDataModel):
     # Data handling
     readers = dataclass.ServerOnly(set, set)
+    surface_readers = dataclass.ServerOnly(set, set)
     variables_2d = dataclass.Sync(list[Variable], list, has_dataclass=True)
     variables_3d = dataclass.Sync(list[Variable], list, has_dataclass=True)
     # General workflow
@@ -283,7 +284,6 @@ class GlobalParameters(dataclass.StateDataModel):
             names = [
                 selection.GetArrayName(i) for i in range(selection.GetNumberOfArrays())
             ]
-            # HOW do I split 2d/3d arrays?
             self.variables_3d = [Variable(self.server, name=str(n)) for n in names]
             tdim = reader.GetDimensions().get("time")
             n_time = tdim.size if tdim is not None else 1
@@ -294,26 +294,46 @@ class GlobalParameters(dataclass.StateDataModel):
 
         self.readers.add(reader)
 
-    def load_fields(self):
-        for reader in self.readers:
+    def register_surface_reader(self, reader):
+        if len(self.surface_readers) == 0:
+            selection = reader.GetProfileVariables()
+            names = [
+                selection.GetArrayName(i) for i in range(selection.GetNumberOfArrays())
+            ]
+            self.variables_2d = [Variable(self.server, name=str(n)) for n in names]
+
+        reader.SetSlicing(json.dumps({"time": self.time_value}))
+        reader.SetColumnIds(self.col_ids_str)
+        self.surface_readers.add(reader)
+
+    @property
+    def all_readers(self):
+        return self.readers | self.surface_readers
+
+    @staticmethod
+    def _enable_selected(readers, variables):
+        selected = [f.name for f in variables if f.selected]
+        for reader in readers:
             array_selection = reader.GetProfileVariables()
             array_selection.DisableAllArrays()
-            for name in (f.name for f in self.variables_2d if f.selected):
-                # print(f"+(2d) {name}")
+            for name in selected:
                 array_selection.EnableArray(name)
-            for name in (f.name for f in self.variables_3d if f.selected):
-                # print(f"+(3d) {name}")
-                array_selection.EnableArray(name)
+
+    def load_fields(self):
+        # Keep each reader to its own variables: EnableArray() on an unknown
+        # name would add it to the reader's selection.
+        self._enable_selected(self.surface_readers, self.variables_2d)
+        self._enable_selected(self.readers, self.variables_3d)
 
     @dataclass.watch("time_value", sync=True)
     def update_reader_time(self, time_value):
         slice_desc = json.dumps({"time": time_value})
-        for reader in self.readers:
+        for reader in self.all_readers:
             reader.SetSlicing(slice_desc)
         self.ctrl.update_color_range()
         self.ctrl.render()
 
     @dataclass.watch("col_ids_str")
     def update_reader_col_ids(self, col_ids_str):
-        for reader in self.readers:
+        for reader in self.all_readers:
             reader.SetColumnIds(col_ids_str)

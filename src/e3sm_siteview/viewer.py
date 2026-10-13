@@ -10,7 +10,7 @@ from trame.widgets import vuetify3 as v3
 from e3sm_siteview.analysis import create_analysis, load_all_analysis
 from e3sm_siteview.cli import configure_and_parse
 from e3sm_siteview.data_models import GlobalParameters, VisualizationAnalysis
-from e3sm_siteview.io import EAMColumnSource, EAMMeshSource
+from e3sm_siteview.io import EAMColumnSource, EAMMeshSource, EAMSurfaceSource
 
 
 def create_viewers(server):
@@ -98,6 +98,11 @@ class E3SMAnalyser(TrameComponent):
             )
 
         self.ctx.setup.register_data_reader(self.columns)
+
+        self.surface = EAMSurfaceSource()
+        self.surface.SetDataFileName(data_file)
+        self.ctx.setup.register_surface_reader(self.surface)
+
         self._analysis = {}
         self._build_ui()
 

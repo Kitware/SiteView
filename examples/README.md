@@ -29,3 +29,4 @@ python examples/01_mesh_reader.py
 | `03_column_volume.py`             | both readers + `EAMColumnVolume` → 3D hexahedral column grid |
 | `04_select_columns_in_radius.py`  | pick columns within a radius on the mesh, then load them     |
 | `05_time_series_single_column.py` | iterate time for one column via the Slicing JSON             |
+| `06_surface_reader.py`            | `EAMSurfaceSource`: data → per-column 2D surface fields      |

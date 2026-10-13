@@ -558,6 +558,216 @@ class EAMColumnSource(VTKPythonAlgorithmBase):
         return 1
 
 
+@smproxy.source(name="EAMSurfaceSource", label="EAM Surface Field Reader")
+@smproperty.xml(
+    """
+                <StringVectorProperty command="SetDataFileName"
+                      name="FileName1"
+                      label="Data File"
+                      number_of_elements="1">
+                    <FileListDomain name="files" />
+                    <Documentation>Specify the NetCDF data file name.</Documentation>
+                </StringVectorProperty>
+                """
+)
+@smproperty.xml(
+    """
+                <StringVectorProperty command="SetColumnIds"
+                      name="ColumnIds"
+                      label="Column Ids"
+                      number_of_elements="1"
+                      animateable="0"
+                      default_values="">
+                    <Documentation>JSON list of horizontal column (cell) ids to
+                    extract surface values for, e.g. [12, 13, 27].</Documentation>
+                </StringVectorProperty>
+                """
+)
+@smproperty.xml(
+    """
+                <StringVectorProperty command="SetSlicing"
+                      name="Slicing"
+                      label="Slicing"
+                      number_of_elements="1"
+                      animateable="0"
+                      default_values="">
+                    <Documentation>JSON of index slices for non-horizontal
+                    dimensions (e.g. {"time": 3}).</Documentation>
+                </StringVectorProperty>
+                """
+)
+class EAMSurfaceSource(EAMColumnSource):
+    """Extract 2D (surface) field values for a list of horizontal columns.
+
+    Companion of EAMColumnSource for the variables it skips: fields living on
+    the horizontal grid without a vertical (lev/ilev) axis, e.g. ``(time,
+    ncol)`` fields such as PS, TS or PRECT. It shares the same properties
+    (DataFileName, ColumnIds, Slicing) and variable selection API, so both
+    readers can be driven identically.
+
+    The output is a vtkTable with one row per selected column and one
+    single-component column per enabled variable::
+
+        rows   = selected columns
+        col_id : 1 component   (the column id per row)
+        <var>  : 1 component   (surface value per row)
+    """
+
+    # Coordinate variables on the horizontal grid, not fields. Matched on the
+    # name prefix since regional outputs suffix them (e.g. lat_170e_to_230e...).
+    SKIP_VARIABLES = {"lat", "lon"}
+
+    def _detect_horizontal_dim(self, vardata):
+        """Detect the horizontal (column) dimension.
+
+        Use the EAMColumnSource heuristic first so both readers agree on the
+        axis the ColumnIds index into. Files without any 3D field fall back to
+        the same heuristic applied to time-varying 2D fields (restricting to
+        time-varying variables skips coordinate axes such as cosp_* / nbnd).
+        """
+        super()._detect_horizontal_dim(vardata)
+        if self._horizontal_dim:
+            return
+
+        counts = {}
+        for info in vardata.variables.values():
+            dims = info.dimensions
+            if self._vertical_dim(dims) is not None or "time" not in dims:
+                continue
+            for d in dims:
+                dim_obj = vardata.dimensions.get(d)
+                if dim_obj is None or dim_obj.isunlimited() or d == "time":
+                    continue  # skip the record/time axis
+                counts[d] = counts.get(d, 0) + 1
+        self._horizontal_dim = max(
+            counts,
+            key=lambda d: (counts[d], vardata.dimensions[d].size),
+            default=None,
+        )
+
+    def _populate_variable_metadata(self):
+        if self._DataFileName is None:
+            return
+        vardata = self._get_var_dataset()
+        self._detect_horizontal_dim(vardata)
+        if not self._horizontal_dim:
+            print_error(
+                "EAMSurfaceSource: could not detect the horizontal (column) dimension"
+            )
+            return
+
+        self._variable_selection.RemoveAllArrays()
+        self._variables.clear()
+        self._dimensions.clear()
+
+        for name, info in vardata.variables.items():
+            dims = info.dimensions
+            if (
+                name.split("_", 1)[0] in self.SKIP_VARIABLES
+                or self._horizontal_dim not in dims
+            ):
+                continue
+            # Surface field: only the horizontal axis plus record/time axes.
+            other_dims = [d for d in dims if d != self._horizontal_dim]
+            if any(
+                d != "time" and not vardata.dimensions[d].isunlimited()
+                for d in other_dims
+            ):
+                continue
+            self._variables[name] = VarMeta(name, info, self._horizontal_dim)
+            self._variable_selection.AddArray(name)
+
+            for d in other_dims:
+                if d in self._dimensions:
+                    continue
+                dim_obj = vardata.dimensions[d]
+                if dim_obj.size > 1:
+                    dim_meta = DimMeta(d, dim_obj.size)
+                    if d in vardata.variables:
+                        try:
+                            dim_meta.data = vardata[d][:].data
+                        except Exception:
+                            pass
+                        dim_meta.update_from_variable(vardata.variables[d])
+                    self._dimensions[d] = dim_meta
+
+        for d in self._dimensions:
+            self._slices.setdefault(d, 0)
+        self._variable_selection.DisableAllArrays()
+
+    # -- execution ------------------------------------------------------------
+    def RequestData(self, request, inInfo, outInfo):
+        with _perf.timed("surface_reader.RequestData"):
+            return self._RequestDataImpl(outInfo)
+
+    def _RequestDataImpl(self, outInfo):
+        output = vtkTable.GetData(outInfo, 0)
+        output.Initialize()
+
+        global _has_deps
+        if not _has_deps:
+            print_error("Required Python module 'netCDF4' or 'numpy' missing!")
+            return 0
+        if not self._DataFileName:
+            print_error("EAMSurfaceSource: a data file is required")
+            return 0
+
+        vardata = self._get_var_dataset()
+        if not self._horizontal_dim:
+            self._detect_horizontal_dim(vardata)
+        if not self._horizontal_dim:
+            print_error(
+                "EAMSurfaceSource: could not detect the horizontal (column) dimension"
+            )
+            return 0
+
+        # Dedupe while preserving requested order (the table's row order).
+        ids = list(dict.fromkeys(self._column_ids))
+        enabled = [
+            vm
+            for vm in self._variables.values()
+            if self._variable_selection.ArrayIsEnabled(vm.name)
+        ]
+        if not ids or not enabled:
+            # Valid but empty result (nothing selected yet).
+            return 1
+
+        # netCDF advanced indexing wants ascending indices; read sorted, then
+        # permute rows back to the requested order.
+        n = len(ids)
+        order = np.argsort(ids, kind="stable")
+        sorted_ids = np.asarray(ids, dtype=np.int64)[order]
+        inv = np.empty(n, dtype=np.int64)
+        inv[order] = np.arange(n)
+
+        self._add_column(
+            output, "col_id", np.asarray(ids, dtype=np.int32), vtkConstants.VTK_INT
+        )
+
+        for vm in enabled:
+            slice_tuple = tuple(
+                sorted_ids
+                if d == self._horizontal_dim
+                else int(self._slices.get(d, 0))
+                for d in vm.dimensions
+            )
+            with _perf.timed(f"surface_reader.netcdf_read.{vm.name}"):
+                arr = np.asarray(vardata[vm.name][slice_tuple])
+            arr = arr.reshape(n)[inv]  # restore requested row order
+
+            if not np.isnan(vm.fillval):
+                arr = np.where(arr == vm.fillval, np.nan, arr)
+
+            self._add_column(
+                output,
+                vm.name,
+                np.ascontiguousarray(arr, dtype=np.float64),
+                vtkConstants.VTK_DOUBLE,
+            )
+
+        return 1
+
+
 @smproxy.source(name="EAMMeshSource", label="EAM Mesh Reader")
 @smproperty.xml(
     """
