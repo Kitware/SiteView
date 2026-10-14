@@ -5,7 +5,12 @@ The SiteView UI presents an ARM observatory as a candidate location for in-depth
 
 
 .. image:: https://raw.githubusercontent.com/Kitware/SiteView/main/SiteView.png
-  :alt: Example of e3sm-siteview data explorer
+  :alt: Example of e3sm-siteview data explorer with the 3D view, column heatmap and time charts
+
+A guided setup lets you pick the site location, the region of interest and the fields to load.
+
+.. image:: https://raw.githubusercontent.com/Kitware/SiteView/main/SiteView-setup.png
+  :alt: Site and region selection step of e3sm-siteview
 
 License
 ----------------------------------------
