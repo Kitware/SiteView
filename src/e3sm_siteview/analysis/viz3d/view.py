@@ -198,7 +198,7 @@ class Viz3D(
                 )
                 self.view_handler = view.create_view_handler(
                     self.render_window,
-                    encoder="turbo-jpeg",
+                    encoder="jpeg",
                 )
                 self.ctrl.render.add(self.view_handler.update)
 

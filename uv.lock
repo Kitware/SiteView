@@ -448,7 +448,7 @@ wheels = [
 
 [[package]]
 name = "e3sm-siteview"
-version = "1.3.0"
+version = "1.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "netcdf4" },
@@ -458,7 +458,7 @@ dependencies = [
     { name = "trame-dataclass" },
     { name = "trame-dockview" },
     { name = "trame-plotly" },
-    { name = "trame-rca", extra = ["turbo"] },
+    { name = "trame-rca" },
     { name = "trame-vuetify" },
     { name = "vtk" },
 ]
@@ -495,7 +495,7 @@ requires-dist = [
     { name = "trame-dataclass", specifier = ">=2.1.3" },
     { name = "trame-dockview" },
     { name = "trame-plotly" },
-    { name = "trame-rca", extras = ["turbo"], specifier = ">=2.11.8" },
+    { name = "trame-rca", specifier = ">=2.11.8" },
     { name = "trame-vuetify", specifier = ">=3.3" },
     { name = "vtk", specifier = ">=9.7" },
 ]
@@ -1585,18 +1585,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyturbojpeg"
-version = "2.5.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/55/fe/b525bca5e85688a283839126095d3e7e6d9bb5e7f23c68e57ad30f43af14/pyturbojpeg-2.5.0.tar.gz", hash = "sha256:572e74886110e0bd85f8a95a188f1cda94c4a5f0222ff38a22d7e12faeb9844b", size = 49265, upload-time = "2026-07-14T16:00:50.511Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/e4/b19be937c95df9a02d6337178088b56fe77c2656eab46489344c7ac510e9/pyturbojpeg-2.5.0-py3-none-any.whl", hash = "sha256:2c10c2de86aa0e4fd9d08de187e46e975d108db35c25842d342393913cf54c36", size = 27455, upload-time = "2026-07-14T16:00:49.05Z" },
-]
-
-[[package]]
 name = "pywebview"
 version = "6.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1815,11 +1803,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2a/17/31e22dbda93451c9fe84fe1d1e15079679566115ca2d79fcc0a42d9bcf67/trame_rca-2.11.8.tar.gz", hash = "sha256:4018b5afcad7e85efb401cc819e53c23b00045343e34de7a369b589cb02949cb", size = 69535, upload-time = "2026-10-09T06:25:00.667Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/ae/1c9aa48198c9bb824766a6bc3b0527db9831d67c1faf1e3f1927b18afa92/trame_rca-2.11.8-py3-none-any.whl", hash = "sha256:59fd897ff8ac42147dcf067f08fd42cdc1b7ecdd357681c5295806209fc2815a", size = 79199, upload-time = "2026-10-09T06:24:59.296Z" },
-]
-
-[package.optional-dependencies]
-turbo = [
-    { name = "pyturbojpeg" },
 ]
 
 [[package]]
