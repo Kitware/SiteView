@@ -11,7 +11,7 @@ from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
-from e3sm_siteview.components.controls import ChartExportMenu
+from e3sm_siteview.components.controls import ChartExportMenu, ChartHint
 from e3sm_siteview.io import EAMColumnSource, EAMSurfaceSource
 
 NAME = "cellTimeChart"
@@ -217,7 +217,24 @@ class CellTimeChart(TrameComponent):
                     id=f"{self.name}_charts",
                     classes="flex-fill border-thin overflow-auto",
                 ):
-                    # html.Div("{{ global.line_chart }}")
+                    ChartHint(
+                        "!global.line_chart.fields.length",
+                        icon="mdi-chart-line",
+                        title="Pick fields to plot",
+                        text="Choose one or more fields in the toolbar above.",
+                    )
+                    ChartHint(
+                        "global.line_chart.fields.length && !global.line_chart.columns.length",
+                        icon="mdi-cursor-default-click-outline",
+                        title="Click a column in the 3D view",
+                        text=(
+                            "With Probes on, click a column and choose"
+                            " “Add to line chart”, or pick columns in the toolbar above."
+                        ),
+                        action="Turn on probes",
+                        click="global.active_viz = [...global.active_viz, 'probes']",
+                        action_if="!global.active_viz.includes('probes')",
+                    )
                     with v4.VCard(
                         v_for="v, k in global.line_chart.results",
                         key="k",

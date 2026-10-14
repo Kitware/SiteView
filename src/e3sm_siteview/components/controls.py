@@ -90,6 +90,31 @@ def ChartExportMenu(container_id):
                 )
 
 
+def ChartHint(v_if, icon, title, text, action=None, click=None, action_if="true"):
+    """Empty chart placeholder telling how to fill it, with an optional action"""
+    with html.Div(
+        v_if=v_if,
+        classes=(
+            "d-flex flex-column align-center justify-center ga-2"
+            " h-100 pa-6 text-center text-medium-emphasis"
+        ),
+    ) as hint:
+        v4.VIcon(icon, size="40", classes="opacity-50")
+        html.Div(title, classes="text-title-medium")
+        html.Div(text, classes="text-body-small", style="max-width: 360px;")
+        if action:
+            v4.VBtn(
+                action,
+                v_if=action_if,
+                click=click,
+                color="primary",
+                variant="tonal",
+                size="small",
+                classes="text-none mt-1",
+            )
+    return hint
+
+
 class LeftFloatControls(html.Div):
     """Left column of the 3D view: layer rail and camera controls"""
 
