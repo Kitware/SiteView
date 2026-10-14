@@ -142,3 +142,20 @@
 .sv-layers > .sv-layer + .sv-layer {
   border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
+
+/* Chart toolbars: primary tint + accent so they stand apart from dockview tabs */
+.sv-chart-toolbar.v-toolbar {
+  background: color-mix(
+    in srgb,
+    rgb(var(--v-theme-primary)) 10%,
+    rgb(var(--v-theme-surface))
+  );
+  border-bottom: 2px solid rgba(var(--v-theme-primary), 0.6);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  z-index: 1;
+}
+
+/* 1px separation between analyses sharing a panel */
+.sv-analysis-row {
+  gap: 1px;
+}

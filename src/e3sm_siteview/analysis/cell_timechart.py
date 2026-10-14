@@ -167,9 +167,9 @@ class CellTimeChart(TrameComponent):
                 ),
             ):
                 with v4.VToolbar(
-                    density="compact", classes="px-2 d-flex ga-2 border-b"
+                    density="compact", classes="px-2 d-flex ga-2 sv-chart-toolbar"
                 ):
-                    v4.VIcon("mdi-chart-line")
+                    v4.VIcon("mdi-chart-line", color="primary")
                     with v4.VSelect(
                         v_model="global.line_chart.fields",
                         items=(
@@ -215,13 +215,15 @@ class CellTimeChart(TrameComponent):
 
                 with html.Div(
                     id=f"{self.name}_charts",
-                    classes="flex-fill pa-2 border-thin overflow-auto",
+                    classes="flex-fill border-thin overflow-auto",
                 ):
                     # html.Div("{{ global.line_chart }}")
                     with v4.VCard(
                         v_for="v, k in global.line_chart.results",
                         key="k",
                         variant="flat",
+                        rounded=0,
+                        classes="pa-2",
                         style=(
                             "`height: max(300px, 100% / ${global.line_chart.results.length})`",
                         ),
