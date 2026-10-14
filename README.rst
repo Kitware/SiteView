@@ -43,7 +43,8 @@ SiteView reads E3SM atmosphere (EAM) output in NetCDF format:
 * ``--cf``: the connectivity file describing the horizontal mesh (SCRIP/TEMPEST format, e.g. ``connectivity_ne30pg2_TEMPEST.scrip.nc``).
   Both global and regional meshes are supported, as long as they match the data files.
 * ``--df``: one or more EAM history files (e.g. ``*.eam.h1.*.nc``) holding the fields to explore.
-  When several files are given, their time steps are combined into a single time series.
+  When several files are given, each one gets its own panel and they all share a single time control.
+  The time steps are read from the first file only: all the files are assumed to share the same time steps.
 
 Running the application
 ----------------------------------------
