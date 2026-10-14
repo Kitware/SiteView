@@ -13,20 +13,10 @@ from e3sm_siteview.data_models import GlobalParameters, VisualizationAnalysis
 from e3sm_siteview.io import EAMColumnSource, EAMMeshSource, EAMSurfaceSource
 
 
-def create_viewers(server):
-    load_all_analysis()
-    options = configure_and_parse(server.cli)
-
-    mesh_algo = EAMMeshSource()
-    mesh_algo.SetFileName(str(Path(options.cf).resolve()))
-    mesh_algo.Update()
-    server.context.mesh_algo = mesh_algo
-    server.context.mesh = mesh_algo.GetOutputDataObject(0)
-    server.context.setup = GlobalParameters(server)
-    viewers = server.context.viewers = {}
-
-    # Compute data region
-    lon_min, lon_max, lat_min, lat_max, *_ = server.context.mesh.GetBounds()
+def compute_data_regions(lon_min, lon_max, lat_min, lat_max):
+    """Data extent as [(left, top, width, height), ...] in percent of an
+    equirectangular map centered on lon 0, split in two when crossing the
+    antimeridian. Empty when the data covers the whole globe."""
     x_percent = []  # [(origin, width), ...]
     lat_o = ((90 - lat_max) / 180) * 100
     lat_h = math.fabs(((90 - lat_min) / 180) * 100 - lat_o)
@@ -40,12 +30,11 @@ def create_viewers(server):
         w = (lon_max - lon_min) / 360
         x_percent.append((o, w))
     else:
-        o = (lon_min - 180) / 360
+        o = 0.5 + lon_min / 360
         w = (lon_max - lon_min) / 360
-        x_percent.append((0.5 + o, w))
+        x_percent.append((o, w))
 
     # make sure we go left to right
-    # x_percent = [(origin_percent, width_percent), ...]
     x_percent.sort()
     if len(x_percent) == 2 and x_percent[0][0] + x_percent[0][1] == x_percent[1][0]:
         # remove split, just make 1 region
@@ -55,9 +44,25 @@ def create_viewers(server):
         # Full region => no highlight
         x_percent = []
 
-    server.state.data_regions = [
-        (lon_o * 100, lat_o, lon_w * 100, lat_h) for lon_o, lon_w in x_percent
-    ]
+    return [(lon_o * 100, lat_o, lon_w * 100, lat_h) for lon_o, lon_w in x_percent]
+
+
+def create_viewers(server):
+    load_all_analysis()
+    options = configure_and_parse(server.cli)
+
+    mesh_algo = EAMMeshSource()
+    mesh_algo.SetFileName(str(Path(options.cf).resolve()))
+    mesh_algo.Update()
+    server.context.mesh_algo = mesh_algo
+    server.context.mesh = mesh_algo.GetOutputDataObject(0)
+    server.context.setup = GlobalParameters(server)
+    viewers = server.context.viewers = {}
+
+    # Highlight of the data region on the site selection map
+    server.state.data_regions = compute_data_regions(
+        *server.context.mesh.GetBounds()[:4]
+    )
 
     # Load fields
     for data_file in options.df:
