@@ -201,9 +201,9 @@ class ColumnHeatMap(TrameComponent):
                 ),
             ):
                 with v4.VToolbar(
-                    density="compact", classes="px-2 d-flex ga-2 border-b"
+                    density="compact", classes="px-2 d-flex ga-2 sv-chart-toolbar"
                 ):
-                    v4.VIcon("mdi-timeline-clock-outline")
+                    v4.VIcon("mdi-timeline-clock-outline", color="primary")
                     v4.VSelect(
                         v_model="global.surface_chart.color_by",
                         items=(
@@ -269,17 +269,17 @@ class ColumnHeatMap(TrameComponent):
 
                 with html.Div(
                     id=f"{self.name}_charts",
-                    classes="flex-fill pa-2 border-thin overflow-auto",
+                    classes="flex-fill border-thin overflow-auto",
                 ):
                     with v4.VCard(
                         v_for="(v, i) in global.surface_chart.results",
                         key="v.field",
                         variant="flat",
                         rounded=0,
-                        classes="position-relative",
+                        classes="position-relative pa-2",
                         style=(
-                            "`height: max(300px, (100% - ${5 * (global.surface_chart.results.length - 1)}px) / ${global.surface_chart.results.length});`"
-                            " + (i > 0 ? 'border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));margin-top: 5px;padding-top: 5px;' : '')",
+                            "`height: max(300px, 100% / ${global.surface_chart.results.length});`"
+                            " + (i > 0 ? 'border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));' : '')",
                         ),
                     ) as container:
                         container.add_child(

@@ -128,7 +128,7 @@ class E3SMAnalyser(TrameComponent):
                 v4.VContainer(classes="h-100 pa-0", fluid=True),
             ):
                 with (
-                    v4.VRow(density="compact", classes="h-100"),
+                    v4.VRow(no_gutters=True, classes="h-100 sv-analysis-row"),
                     self.config.provide_as("conf"),
                     self.ctx.setup.provide_as("global"),
                 ):
