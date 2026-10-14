@@ -1261,9 +1261,9 @@ class Viz3D(TrameComponent):
                     controls.VizLayerRail()
                     controls.CameraFocus(reset_camera=self.ctrl.reset_camera)
 
-                with controls.Controls(), controls.TopLeftFloatControls():
-                    controls.ZScale()
+                with controls.Controls(), controls.VizLayersPanel().card:
                     controls.Cloud()
+                    controls.ZScale()
                     controls.Surface()
                     controls.Volume()
                     controls.HorizontalSlice()
@@ -1271,6 +1271,7 @@ class Viz3D(TrameComponent):
                     controls.FindData()
                     controls.Histogram()
                     controls.CropColumn()
+                    controls.Probes()
 
                 with (
                     controls.Controls(),
