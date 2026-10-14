@@ -136,7 +136,6 @@ class SiteSelection(v4.VRow):
                                 prepend_inner_icon="mdi-radius-outline",
                                 variant="outlined",
                                 density="comfortable",
-                                classes="pr-4",
                                 rules=(
                                     """[
                                     (v) => (v >= 0) || 'Radius must be greater than or equal to 0',
@@ -144,17 +143,20 @@ class SiteSelection(v4.VRow):
                                 ]""",
                                 ),
                             )
-                        with v4.VBtnToggle(
-                            v_model=("site_radius_unit", "deg"),
-                            color="primary",
-                            variant="outlined",
-                            divided=True,
-                            mandatory=True,
-                            classes="mt-1 mr-1",
-                            size="small",
-                        ):
-                            v4.VBtn("km", value="km", classes="text-none")
-                            v4.VBtn("deg", value="deg", classes="text-none")
+                        with v4.VCol(cols="auto"):
+                            # Same height (48px) and outline as a comfortable outlined field
+                            with v4.VBtnToggle(
+                                v_model=("site_radius_unit", "deg"),
+                                color="primary",
+                                base_color="grey",
+                                variant="outlined",
+                                divided=True,
+                                mandatory=True,
+                                rounded=True,
+                                style="height: 48px;",
+                            ):
+                                v4.VBtn("km", value="km", classes="text-none px-4")
+                                v4.VBtn("deg", value="deg", classes="text-none px-4")
 
                     v4.VBtn(
                         "Load {{ config.n_cols }} column{{ config.n_cols > 1 && 's' || '' }}",
@@ -163,7 +165,7 @@ class SiteSelection(v4.VRow):
                         color="primary",
                         size="large",
                         append_icon="mdi-chevron-right",
-                        height=48,
+                        style="height: 48px;",
                         click=next_fn,
                         block=True,
                     )
