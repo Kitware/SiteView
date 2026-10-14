@@ -172,6 +172,7 @@ class GlobalParameters(dataclass.StateDataModel):
     n_cols = dataclass.Sync(int, 0)
     # 3D Viz controls
     camera_focus = dataclass.Sync(str, "data")  # data, earth
+    show_tools = dataclass.Sync(bool, True)  # floating tools over the 3D view
 
     active_viz = dataclass.Sync(list[str], ["volume"])
     cloud = dataclass.Sync(CloudControls, has_dataclass=True)
