@@ -8,7 +8,7 @@ authors = [
 dependencies = [
     "vtk>=9.7",
     "trame >=3.13.2",
-    "trame-vuetify",
+    "trame-vuetify>=3.3",
     "trame-rca[turbo] >=2.11.2",
     "trame-plotly",
     "trame-colormaps >=1.6.1",

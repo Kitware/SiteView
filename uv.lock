@@ -448,7 +448,7 @@ wheels = [
 
 [[package]]
 name = "e3sm-siteview"
-version = "1.2.0"
+version = "1.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "netcdf4" },
@@ -491,7 +491,7 @@ requires-dist = [
     { name = "trame-dockview" },
     { name = "trame-plotly" },
     { name = "trame-rca", extras = ["turbo"], specifier = ">=2.11.2" },
-    { name = "trame-vuetify" },
+    { name = "trame-vuetify", specifier = ">=3.3" },
     { name = "vtk", specifier = ">=9.7" },
 ]
 provides-extras = ["app", "dev"]
@@ -1833,14 +1833,14 @@ wheels = [
 
 [[package]]
 name = "trame-vuetify"
-version = "3.2.5"
+version = "3.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "trame-client" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d4/6c/eb70f1acd70906f5a39a2afdfd311803706e53006803ba90af9785690ff3/trame_vuetify-3.2.5.tar.gz", hash = "sha256:aec18c581eef0eeb41a64bc50e52f4867ea40777f002c079a0a927a73f99fc4d", size = 5129745, upload-time = "2026-07-20T17:58:40.383Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/5a/fd1403999499a7f8376abb63393b4e00fb2db42d19b180ff6e045ae920bf/trame_vuetify-3.3.0.tar.gz", hash = "sha256:cdef8316d7e7100a6a35aa6d76dd03263956041b534578ba9218f316ffc7d9f9", size = 6734562, upload-time = "2026-09-29T17:38:01.261Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/b4/c1758b90ac5f798812cb387941149b22aec758347f2963c71548a4359219/trame_vuetify-3.2.5-py3-none-any.whl", hash = "sha256:533470daa6f4d233f2eeb7434a312062bc30fb1b2d8cb341a5d9934ff7880303", size = 5160276, upload-time = "2026-07-20T17:58:38.497Z" },
+    { url = "https://files.pythonhosted.org/packages/db/77/a2479f57944ea1df8dd52cabdf00b1988dfc4c5b609f27573530fbc1cfc1/trame_vuetify-3.3.0-py3-none-any.whl", hash = "sha256:3a68a8457a439c1f2d456bfa1004091116a4c9988503f594fd44e980222773f2", size = 6794266, upload-time = "2026-09-29T17:37:58.449Z" },
 ]
 
 [[package]]

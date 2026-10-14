@@ -1,5 +1,5 @@
 from trame.widgets import html
-from trame.widgets import vuetify3 as v3
+from trame.widgets import vuetify4 as v4
 
 from e3sm_siteview import constants, module
 
@@ -11,7 +11,7 @@ class FieldSelection(html.Div):
 
         with self, self.ctx.setup.provide_as("fields"):
             with html.Div(classes="px-6 pt-6 d-flex align-center ga-2"):
-                v3.VTextField(
+                v4.VTextField(
                     v_model=("fields_filter", ""),
                     placeholder="Search fields (name or description)",
                     prepend_inner_icon="mdi-magnify",
@@ -20,7 +20,7 @@ class FieldSelection(html.Div):
                     clearable=True,
                     hide_details=True,
                 )
-                v3.VBtn(
+                v4.VBtn(
                     "Load ({{ fields.variables_2d.filter(v=>v.selected).length }} + {{ fields.variables_3d.filter(v=>v.selected).length }})",
                     classes="text-none",
                     variant="flat",
@@ -35,29 +35,29 @@ class FieldSelection(html.Div):
                 )
 
             with html.Div(classes="flex-fill px-6 py-3"):
-                with v3.VExpansionPanels(
+                with v4.VExpansionPanels(
                     v_model=("fields_open_panels", [0, 1]),
                     multiple=True,
                     variant="accordion",
                 ):
                     for group in constants.FIELD_GROUPS:
-                        with v3.VExpansionPanel():
-                            with v3.VExpansionPanelTitle(height="48px", static=True):
-                                v3.VIcon(
+                        with v4.VExpansionPanel():
+                            with v4.VExpansionPanelTitle(height="48px", static=True):
+                                v4.VIcon(
                                     icon=group.icon,
                                     classes="mr-3",
                                     color=group.color,
                                 )
                                 html.Span(group.label, classes="font-weight-medium")
-                                v3.VChip(
+                                v4.VChip(
                                     f"{{{{fields.{group.state_name}.filter(v=>v.selected).length}}}} / {{{{ fields.{group.state_name}.length }}}}",  # FIXME
                                     size="x-small",
                                     variant="outlined",
                                     color=group.color,
                                     classes="ml-4",
                                 )
-                                v3.VSpacer()
-                                v3.VBtn(
+                                v4.VSpacer()
+                                v4.VBtn(
                                     "Select all",
                                     variant="text",
                                     v_on_click_stop_prevent=(
@@ -67,7 +67,7 @@ class FieldSelection(html.Div):
                                     classes="mr-2 text-none",
                                     density="compact",
                                 )
-                                v3.VBtn(
+                                v4.VBtn(
                                     "Clear",
                                     variant="text",
                                     v_on_click_stop_prevent=(
@@ -78,9 +78,9 @@ class FieldSelection(html.Div):
                                     density="compact",
                                 )
 
-                            with v3.VExpansionPanelText(classes="border-t"):
-                                with v3.VRow(dense=True):
-                                    with v3.VCol(
+                            with v4.VExpansionPanelText(classes="border-t"):
+                                with v4.VRow(density="compact"):
+                                    with v4.VCol(
                                         v_for=f"field in fields.{group.state_name}",
                                         key="field.name",
                                         cols=12,
@@ -89,12 +89,12 @@ class FieldSelection(html.Div):
                                         xl=3,
                                         v_show="utils.e3sm.match(field, fields_filter)",
                                     ):
-                                        with v3.VCheckbox(
+                                        with v4.VCheckbox(
                                             v_model="field.selected",
                                             density="compact",
                                             hide_details=True,
                                         ):
-                                            with v3.Template(v_slot_label=True):
+                                            with v4.Template(v_slot_label=True):
                                                 with html.Div():
                                                     with html.Div(
                                                         "{{ field.name }}",
@@ -102,11 +102,11 @@ class FieldSelection(html.Div):
                                                     ):
                                                         html.Span(
                                                             "({{ field.units }})",
-                                                            classes="text-caption text-medium-emphasis",
+                                                            classes="text-body-small text-medium-emphasis",
                                                         )
                                                     html.Div(
                                                         "{{ field.description }}",
-                                                        classes="text-caption text-medium-emphasis",
+                                                        classes="text-body-small text-medium-emphasis",
                                                         style="line-height:1.2;",
                                                     )
 

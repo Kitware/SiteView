@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from trame.app import TrameComponent
 from trame.ui.html import DivLayout
 from trame.widgets import html, plotly
-from trame.widgets import vuetify3 as v3
+from trame.widgets import vuetify4 as v4
 from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 
@@ -208,11 +208,11 @@ class ColumnHeatMap(TrameComponent):
                     classes="d-flex flex-column",
                 ),
             ):
-                with v3.VToolbar(
+                with v4.VToolbar(
                     density="compact", classes="px-2 d-flex ga-2 border-b"
                 ):
-                    v3.VIcon("mdi-timeline-clock-outline")
-                    v3.VSelect(
+                    v4.VIcon("mdi-timeline-clock-outline")
+                    v4.VSelect(
                         v_model="global.surface_chart.color_by",
                         items=(
                             "global.variables_3d.filter(v => v.selected).map(v => v.name)",
@@ -223,16 +223,16 @@ class ColumnHeatMap(TrameComponent):
                         classes="w-100",
                     )
                     with html.Div(classes="d-flex ga-2"):
-                        with v3.VMenu(location="bottom end"):
-                            with v3.Template(v_slot_activator="{ props }"):
-                                v3.VBtn(
+                        with v4.VMenu(location="bottom end"):
+                            with v4.Template(v_slot_activator="{ props }"):
+                                v4.VBtn(
                                     v_bind="props",
                                     icon="mdi-plus",
                                     classes="rounded",
                                     density="compact",
                                 )
-                            with v3.VList(density="compact", max_height="50vh"):
-                                v3.VListItem(
+                            with v4.VList(density="compact", max_height="50vh"):
+                                v4.VListItem(
                                     v_for=(
                                         "name in global.variables_3d.filter(v => v.selected).map(v => v.name)"
                                         ".filter(n => n !== global.surface_chart.color_by"
@@ -243,16 +243,16 @@ class ColumnHeatMap(TrameComponent):
                                     click=(self.add_field, "[name]"),
                                 )
 
-                        with v3.VMenu(location="bottom end"):
-                            with v3.Template(v_slot_activator="{ props }"):
-                                v3.VBtn(
+                        with v4.VMenu(location="bottom end"):
+                            with v4.Template(v_slot_activator="{ props }"):
+                                v4.VBtn(
                                     v_bind="props",
                                     icon="mdi-map-marker-outline",
                                     classes="rounded",
                                     density="compact",
                                 )
-                            with v3.VList(density="compact", max_height="50vh"):
-                                v3.VListItem(
+                            with v4.VList(density="compact", max_height="50vh"):
+                                v4.VListItem(
                                     v_for="item in global.col_items",
                                     key="item.value",
                                     title=("item.title",),
@@ -261,13 +261,13 @@ class ColumnHeatMap(TrameComponent):
                                     ),
                                     click="global.surface_chart.column = item.value",
                                 )
-                        v3.VBtn(
+                        v4.VBtn(
                             icon="mdi-chevron-left",
                             click=(self.shift_col_id, "[-1]"),
                             classes="rounded",
                             density="compact",
                         )
-                        v3.VBtn(
+                        v4.VBtn(
                             icon="mdi-chevron-right",
                             click=(self.shift_col_id, "[+1]"),
                             classes="rounded",
@@ -275,7 +275,7 @@ class ColumnHeatMap(TrameComponent):
                         )
 
                 with html.Div(classes="flex-fill pa-2 border-thin overflow-auto"):
-                    with v3.VCard(
+                    with v4.VCard(
                         v_for="(v, i) in global.surface_chart.results",
                         key="v.field",
                         variant="flat",
@@ -297,7 +297,7 @@ class ColumnHeatMap(TrameComponent):
                             " zmax: global.surface_chart.color_range[1] } : {}),"
                             ' }))" :layout="utils.e3sm.plotlyLayout(v.layout, global.dark)" :displayModeBar="false" :displaylogo="false" />'
                         )
-                        v3.VBtn(
+                        v4.VBtn(
                             v_if="v.removable",
                             icon="mdi-close",
                             size="small",
