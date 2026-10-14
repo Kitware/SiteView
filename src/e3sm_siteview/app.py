@@ -65,6 +65,7 @@ class E3smSiteView(TrameApp):
                     dockview.DockView(
                         ctx_name="views_container",
                         theme=("siteview_dockview_theme",),
+                        ready=self._on_dock_ready,
                     )
                     LoadingOverlay()
                 footer.TimeControls()
@@ -74,6 +75,12 @@ class E3smSiteView(TrameApp):
         with self.state:
             self.state.siteview_theme = "siteviewDark" if dark else "siteviewLight"
             self.state.siteview_dockview_theme = "Dark" if dark else "Light"
+
+    def _on_dock_ready(self):
+        # Panels only exist client side: restore them on reload or new tab
+        if self.ctx.setup.data_loaded:
+            for viewer in self.ctx.viewers.values():
+                viewer.show_panel()
 
     def _on_page_change(self, active_page):
         if (
