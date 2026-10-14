@@ -24,12 +24,6 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
-      - name: Pre-commit
-        run: |
-          uv run pre-commit install
-          uv run pre-commit install --hook-type commit-msg
-          uv run pre-commit run --all-files
-
       - name: Run help command
         run: |
           uv run e3sm-siteview --help

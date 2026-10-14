@@ -474,15 +474,20 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
 ]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
 
 [package.metadata]
 requires-dist = [
+    { name = "e3sm-siteview", extras = ["test"], marker = "extra == 'dev'" },
     { name = "netcdf4", specifier = ">=1.6.5" },
     { name = "nox", marker = "extra == 'dev'" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pyproj", specifier = ">=3.6.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=6" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=3" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=6" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=3" },
     { name = "pywebview", marker = "extra == 'app'" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "trame", specifier = ">=3.13.2" },
@@ -494,7 +499,7 @@ requires-dist = [
     { name = "trame-vuetify", specifier = ">=3.3" },
     { name = "vtk", specifier = ">=9.7" },
 ]
-provides-extras = ["app", "dev"]
+provides-extras = ["app", "test", "dev"]
 
 [[package]]
 name = "filelock"

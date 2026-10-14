@@ -1,7 +1,7 @@
 [project]
 name = "e3sm-siteview"
 version = "1.3.0"
-description = "E3SM Column Explorer"
+description = "E3SM Site View: explore EAM columns around a site of interest"
 authors = [
     {name = "Kitware Inc."},
 ]
@@ -36,11 +36,14 @@ classifiers = [
 app = [
     "pywebview",
 ]
-dev = [
-    "pre-commit",
-    "ruff",
+test = [
     "pytest >=6",
     "pytest-cov >=3",
+]
+dev = [
+    "e3sm-siteview[test]",
+    "pre-commit",
+    "ruff",
     "nox",
 ]
 
@@ -106,16 +109,6 @@ isort.required-imports = []
 "noxfile.py" = ["T20"]
 "examples/**" = ["T20", "INP001"]
 "src/**" = ["SIM117", "T"]
-"src/e3sm_siteview/plugins/**" = [
-    "PLW",
-    "ARG",
-    "RET",
-    "PLC",
-    "SIM",
-    "EM",
-    "PGH",
-    "T",
-]
 
 [tool.semantic_release]
 version_toml = [
