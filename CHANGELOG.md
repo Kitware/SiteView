@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.3.2 (2026-10-14)
+
+### Bug Fixes
+
+- **py**: Use py 3.10 as min
+  ([`db107e8`](https://github.com/Kitware/SiteView/commit/db107e85ee714b4b118bd967935a4696d73a56de))
+
+- **rca**: Use plain pillow encoder to skip side turbo-jpeg
+  ([`e89cf9b`](https://github.com/Kitware/SiteView/commit/e89cf9b09388bd403269269b49ed76bfacf580cc))
+
+
 ## v1.3.1 (2026-10-14)
 
 ### Bug Fixes
