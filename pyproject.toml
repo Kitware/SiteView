@@ -9,7 +9,7 @@ dependencies = [
     "vtk>=9.7",
     "trame >=3.13.2",
     "trame-vuetify>=3.3",
-    "trame-rca[turbo] >=2.11.8",
+    "trame-rca >=2.11.8",
     "trame-plotly",
     "trame-colormaps >=1.6.1",
     "trame-dockview",
