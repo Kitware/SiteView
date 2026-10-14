@@ -1,5 +1,5 @@
-import importlib.util
-from pathlib import Path
+import importlib
+import pkgutil
 
 REGISTRY = {}
 
@@ -23,13 +23,10 @@ def create_id_generator():
 
 
 def load_all_analysis():
-    for module_path in Path(__file__).parent.glob("*.py"):
-        if module_path.stem[0] == "_":
-            continue
-        name = module_path.stem
-        spec = importlib.util.spec_from_file_location(name, module_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+    """Import the analysis modules and packages so they register themselves"""
+    for module in pkgutil.iter_modules(__path__):
+        if not module.name.startswith("_"):
+            importlib.import_module(f"{__name__}.{module.name}")
 
 
 ANALYSIS_ID = create_id_generator()

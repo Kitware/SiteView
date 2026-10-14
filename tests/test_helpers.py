@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from e3sm_siteview.analysis.viz3d import _snap_bound
+from e3sm_siteview.analysis.viz3d.histogram import snap_bound
 from e3sm_siteview.data_models import format_lat_lon, normalize_lon, time_dates
 
 
@@ -46,13 +46,13 @@ def test_time_dates_not_decodable(tdim):
     assert time_dates(tdim) is None
 
 
-def test_snap_bound():
+def testsnap_bound():
     values = np.array([0, 0, 0, 0, 1, 2, 3, 4], dtype=float)
     mask = values > 0
     # 0/100 keep the data bound
-    assert _snap_bound(values, mask, 0, -1.0) == -1.0
-    assert _snap_bound(values, mask, 100, 9.0) == 9.0
+    assert snap_bound(values, mask, 0, -1.0) == -1.0
+    assert snap_bound(values, mask, 100, 9.0) == 9.0
     # Percentile computed without the dominant extreme value
-    assert _snap_bound(values, mask, 50, 0.0) == pytest.approx(2.5)
+    assert snap_bound(values, mask, 50, 0.0) == pytest.approx(2.5)
     # Nothing left after masking
-    assert _snap_bound(values, np.zeros_like(mask), 50, 0.0) == 0.0
+    assert snap_bound(values, np.zeros_like(mask), 50, 0.0) == 0.0
