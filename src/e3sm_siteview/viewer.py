@@ -153,12 +153,16 @@ class E3SMAnalyser(TrameComponent):
             panels[type] = analysis.name
 
         self.config.panels = panels
-        asynchronous.create_task(
-            self._add_panel(self.template_name, self.name, self.template_name)
-        )
+        asynchronous.create_task(self._add_panel())
 
-    async def _add_panel(self, panel_id, label, template_name):
-        self.ctx.views_container.add_panel(panel_id, label, template_name)
+    async def _add_panel(self):
+        self.show_panel()
+
+    def show_panel(self):
+        """Add the dock panel of this file (no-op on clients that have it)"""
+        self.ctx.views_container.add_panel(
+            self.template_name, self.name, self.template_name
+        )
 
     @property
     def analyses(self):
