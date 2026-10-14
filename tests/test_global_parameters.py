@@ -79,3 +79,20 @@ def test_load_fields_color_by(setup):
     t.selected = True
     setup.load_fields()
     assert setup.volume.color_by == "Q"
+
+
+def test_load_fields_without_selection(setup):
+    setup.load_fields()
+    assert setup.volume.color_by == ""
+    assert setup.surface.color_by == ""
+
+
+def test_time_values_update(setup):
+    setup.time_index = 2
+    setup.time_values = [0, 1]
+    assert setup.time_index_max == 1
+    assert setup.time_index == 1
+    assert setup.time_value == 1
+    setup.time_values = []
+    assert setup.time_index_max == 0
+    assert setup.time_value == 0
