@@ -1,7 +1,7 @@
 from contextlib import suppress
 
 from trame.widgets import colormaps, dataclass, html
-from trame.widgets import vuetify3 as v3
+from trame.widgets import vuetify4 as v4
 
 HISTOGRAM_SNAP_PERCENTILES = [1, *range(5, 100, 5)]
 
@@ -52,7 +52,7 @@ def IconBtn(icon, tooltip=None, size="small", location="top", **kwargs):
             tooltip if isinstance(tooltip, tuple) else f"'{tooltip}'"
         )
     kwargs.setdefault("variant", "text")
-    return v3.VBtn(
+    return v4.VBtn(
         icon=icon,
         size=size,
         density="comfortable",
@@ -71,7 +71,7 @@ class LeftFloatControls(html.Div):
         )
 
 
-class VizLayerRail(v3.VCard):
+class VizLayerRail(v4.VCard):
     """Vertical toggles of the 3D view layers/tools"""
 
     def __init__(self):
@@ -87,7 +87,7 @@ class VizLayerRail(v3.VCard):
                 click=f"{show} = !{show}",
             )
         with self, html.Div(v_show=show, classes="d-flex flex-column ga-1"):
-            v3.VDivider()
+            v4.VDivider()
             for key, icon, title in VIZ_LAYERS:
                 active = f"controls.active_viz.includes('{key}')"
                 shortcut = VIZ_LAYER_SHORTCUTS.get(key)
@@ -118,7 +118,7 @@ class VizLayersPanel(html.Div):
             ),
         )
         with self:
-            self.card = v3.VCard(
+            self.card = v4.VCard(
                 v_show=(
                     "controls.show_tools && controls.active_viz.some(v => "
                     f"{[k for k, *_ in VIZ_LAYERS]}.includes(v))"
@@ -152,26 +152,26 @@ class TitledScalarBar(html.Div):
             html.Div(
                 title,
                 title=(f"`${{{field}}}`",),
-                classes="text-caption font-weight-medium text-high-emphasis px-2 text-no-wrap text-truncate",
+                classes="text-body-small font-weight-medium text-high-emphasis px-2 text-no-wrap text-truncate",
                 style="flex-shrink:0;max-width:100%;",
             )
             with colormaps.HorizontalScalarBar(name, has_menu=False) as bar:
                 bar.classes += " rounded"
-                with v3.VMenu(
+                with v4.VMenu(
                     v_model=f"{name}.menu",
                     activator="parent",
                     location="top",
                     close_on_content_click=False,
                 ):
-                    with v3.VCard(classes="sv-float", style="width: fit-content;"):
+                    with v4.VCard(classes="sv-float", style="width: fit-content;"):
                         html.Div(
                             title,
-                            classes="text-subtitle-2 px-4 pt-2 text-truncate",
+                            classes="text-title-small px-4 pt-2 text-truncate",
                         )
                         colormaps.ColorMapEditor(name, flat=True, style="height: 50vh;")
 
 
-class CameraFocus(v3.VCard):
+class CameraFocus(v4.VCard):
     def __init__(self, reset_camera):
         super().__init__(
             v_show="controls.show_tools",
@@ -186,7 +186,7 @@ class CameraFocus(v3.VCard):
                 location="end",
                 click=reset_camera,
             )
-            v3.VDivider(classes="align-self-stretch")
+            v4.VDivider(classes="align-self-stretch")
             IconBtn(
                 (f"{is_earth} ? 'mdi-earth' : 'mdi-image-filter-center-focus'",),
                 (
@@ -201,10 +201,10 @@ class CameraFocus(v3.VCard):
 
 def SliderValue(text, min_width="3.5rem"):
     """Current value (with units) of a slider, to use in its append slot"""
-    with v3.Template(v_slot_append=True):
+    with v4.Template(v_slot_append=True):
         html.Div(
             text,
-            classes="text-caption text-medium-emphasis text-no-wrap text-right",
+            classes="text-body-small text-medium-emphasis text-no-wrap text-right",
             style=f"min-width: {min_width};",
         )
 
@@ -231,16 +231,16 @@ class LayerSection(html.Div):
                     classes="d-flex align-center flex-fill ga-2 pl-2 overflow-hidden",
                     **(toggle if expandable else {}),
                 ):
-                    v3.VIcon(icon, size="small", color="primary")
+                    v4.VIcon(icon, size="small", color="primary")
                     html.Div(
                         title,
-                        classes="text-body-2 font-weight-medium text-no-wrap",
+                        classes="text-body-medium font-weight-medium text-no-wrap",
                     )
                     if summary:
                         html.Div(
                             summary,
                             v_show=f"!{show}",
-                            classes="text-caption text-medium-emphasis text-truncate",
+                            classes="text-body-small text-medium-emphasis text-truncate",
                         )
                 self.actions = html.Div(classes="d-flex align-center")
                 if expandable:
@@ -263,7 +263,7 @@ class ZScale(LayerSection):
     def __init__(self):
         super().__init__("zscale", summary="&times;{{ controls.zscale.scale }}")
         with self.body:
-            with v3.VSlider(
+            with v4.VSlider(
                 v_model="controls.zscale.scale",
                 min=1,
                 max=5000,
@@ -277,14 +277,14 @@ class Cloud(LayerSection):
     def __init__(self):
         super().__init__("cloud", summary="{{ controls.cloud.threshold_by }}")
         with self.body:
-            v3.VSelect(
+            v4.VSelect(
                 v_model=("controls.cloud.threshold_by", None),
                 items=(
                     "controls.variables_3d.filter(v => v.selected).map(v => v.name)",
                 ),
                 **FIELD_PROPS,
             )
-            with v3.VSlider(
+            with v4.VSlider(
                 v_model="controls.cloud.threshold_value",
                 min=0,
                 max=1,
@@ -297,7 +297,7 @@ class Cloud(LayerSection):
                 SliderValue(
                     "≥ {{ (100 * controls.cloud.threshold_value).toFixed(1) }}%"
                 )
-            with v3.VSlider(
+            with v4.VSlider(
                 v_model="controls.cloud.opacity",
                 min=0,
                 max=1,
@@ -317,7 +317,7 @@ class ColorBySection(LayerSection):
         self._key = key
         self._variables = variables
         with self.body, html.Div(classes="d-flex align-center ga-1"):
-            v3.VSelect(
+            v4.VSelect(
                 v_model=(f"controls.{key}.color_by", None),
                 items=(
                     f"controls.{variables}.filter(v => v.selected).map(v => v.name)",
@@ -381,7 +381,7 @@ class HorizontalSlice(LayerSection):
         with self.actions:
             EdgeToggle("hslice")
         with self.body:
-            with v3.VSlider(
+            with v4.VSlider(
                 v_model="controls.hslice.altitude",
                 step="1",
                 min=("controls.column.altitude_range[0]",),
@@ -398,7 +398,7 @@ class VerticalSlice(LayerSection):
         with self.actions:
             EdgeToggle("vslice")
         with self.body:
-            with v3.VSlider(
+            with v4.VSlider(
                 v_model="controls.vslice.orientation",
                 step="1",
                 min=[-180],
@@ -413,7 +413,7 @@ class FindData(LayerSection):
         formula = "controls.find_data.formula"
         super().__init__("find_data", summary=f"{{{{ {formula} }}}}")
         with self.body:
-            with v3.VTextField(
+            with v4.VTextField(
                 v_model=formula,
                 density="compact",
                 variant="outlined",
@@ -427,17 +427,17 @@ class FindData(LayerSection):
             ):
                 # Variables menu: insert a field name at the cursor
                 with (
-                    v3.Template(v_slot_prepend_inner=True),
-                    v3.VMenu(location="bottom start", max_height=300),
+                    v4.Template(v_slot_prepend_inner=True),
+                    v4.VMenu(location="bottom start", max_height=300),
                 ):
-                    with v3.Template(v_slot_activator="{ props }"):
-                        v3.VIcon(
+                    with v4.Template(v_slot_activator="{ props }"):
+                        v4.VIcon(
                             "mdi-function-variant",
                             v_bind="props",
                             v_tooltip_top="'Insert a variable'",
                         )
-                    with v3.VList(density="compact"):
-                        v3.VListItem(
+                    with v4.VList(density="compact"):
+                        v4.VListItem(
                             v_for="f in controls.variables_3d.filter(v => v.selected)",
                             key="f.name",
                             title=("f.name",),
@@ -468,7 +468,7 @@ class Histogram(LayerSection):
                 ' :displayModeBar="false" :displaylogo="false"'
                 ' style="height: 200px;" />'
             )
-            v3.VRangeSlider(
+            v4.VRangeSlider(
                 model_value=("controls.histogram.range",),
                 min=("controls.histogram.data_range[0]",),
                 max=("controls.histogram.data_range[1]",),
@@ -485,15 +485,15 @@ class Histogram(LayerSection):
             )
             with html.Div(classes="d-flex align-center"):
                 self._snap_menu(0, "min", "max", lambda p: p)
-                v3.VSpacer()
+                v4.VSpacer()
                 self._snap_menu(1, "max", "min", lambda p: 100 - p)
 
     def _snap_menu(self, idx, bound, other_bound, to_percentile):
         snap = f"controls.histogram.snap_{bound}"
         other = f"controls.histogram.snap_{other_bound}"
-        with v3.VMenu(location="top", max_height=300):
-            with v3.Template(v_slot_activator="{ props }"):
-                v3.VBtn(
+        with v4.VMenu(location="top", max_height=300):
+            with v4.Template(v_slot_activator="{ props }"):
+                v4.VBtn(
                     f"{{{{ controls.histogram.range[{idx}].toPrecision(4) }}}}",
                     v_bind="props",
                     size="small",
@@ -502,14 +502,14 @@ class Histogram(LayerSection):
                     append_icon="mdi-menu-down",
                     classes="text-none px-1",
                 )
-            with v3.VList(density="compact"):
-                v3.VListItem(
+            with v4.VList(density="compact"):
+                v4.VListItem(
                     title=f"Data {bound}",
                     active=(f"{snap} === 0",),
                     click=f"{snap} = 0",
                 )
                 for p in HISTOGRAM_SNAP_PERCENTILES:
-                    v3.VListItem(
+                    v4.VListItem(
                         title=f"{to_percentile(p)}th percentile",
                         subtitle=f"excluding data {bound}",
                         active=(f"{snap} === {p}",),
@@ -528,7 +528,7 @@ class CropColumn(LayerSection):
         )
         super().__init__("column", summary=levels)
         with self.body:
-            v3.VRangeSlider(
+            v4.VRangeSlider(
                 v_if="controls.column.col_max_idx",
                 v_model="controls.column.altitude_range",
                 min="0",
@@ -536,7 +536,7 @@ class CropColumn(LayerSection):
                 step="1",
                 **SLIDER_PROPS,
             )
-            html.Div(levels, classes="text-caption text-medium-emphasis text-center")
+            html.Div(levels, classes="text-body-small text-medium-emphasis text-center")
 
 
 class Probes(LayerSection):
@@ -561,7 +561,7 @@ class ProbeTooltip(html.Div):
     def __init__(self):
         super().__init__(
             v_if="probe.hover",
-            classes="text-caption text-white bg-grey-darken-3 rounded px-2 py-1 text-no-wrap elevation-2",
+            classes="text-body-small text-white bg-grey-darken-3 rounded px-2 py-1 text-no-wrap elevation-2",
             # Keep the mouse events for the 3D view
             style=(
                 _probe_anchor_style(
@@ -578,7 +578,7 @@ class ProbeTooltip(html.Div):
             )
 
 
-class ProbeMenu(v3.VCard):
+class ProbeMenu(v4.VCard):
     """Use the clicked column in the charts (needs the "probe" and "global" providers)"""
 
     def __init__(self, use_for_heatmap, toggle_line_chart):
@@ -590,27 +590,27 @@ class ProbeMenu(v3.VCard):
             style=(_probe_anchor_style("probe.menu_x", "probe.menu_y", 4),),
         )
         with self:
-            with v3.VCardItem(
+            with v4.VCardItem(
                 prepend_icon="mdi-map-marker-outline", classes="py-1 pr-1"
             ):
-                html.Div("{{ probe.menu_title }}", classes="text-subtitle-2")
-                with v3.Template(v_slot_append=True):
-                    v3.VBtn(
+                html.Div("{{ probe.menu_title }}", classes="text-title-small")
+                with v4.Template(v_slot_append=True):
+                    v4.VBtn(
                         icon="mdi-close",
                         size="small",
                         variant="plain",
                         density="comfortable",
                         click="probe.menu = false",
                     )
-            v3.VDivider()
-            with v3.VList(density="compact", classes="py-0"):
-                v3.VListItem(
+            v4.VDivider()
+            with v4.VList(density="compact", classes="py-0"):
+                v4.VListItem(
                     prepend_icon="mdi-view-grid-compact",
                     title="Use for column heat map",
                     active=("global.surface_chart.column === probe.menu_col_id",),
                     click=use_for_heatmap,
                 )
-                v3.VListItem(
+                v4.VListItem(
                     prepend_icon=(
                         f"{in_line_chart} ? 'mdi-chart-line-variant' : 'mdi-chart-line'",
                     ),

@@ -1,5 +1,5 @@
 from trame.widgets import html
-from trame.widgets import vuetify3 as v3
+from trame.widgets import vuetify4 as v4
 
 from e3sm_siteview.assets import ASSETS
 from e3sm_siteview.components.footer import TooltipButton
@@ -11,7 +11,7 @@ N_FIELDS = (
 )
 
 
-class StepChip(v3.VChip):
+class StepChip(v4.VChip):
     """Summary of a setup step, click to open it (needs the "controls" provider)"""
 
     def __init__(self, text, icon, page, tooltip):
@@ -26,15 +26,15 @@ class StepChip(v3.VChip):
         )
 
 
-class AppHeader(v3.VAppBar):
+class AppHeader(v4.VAppBar):
     """Logo, setup summary, analysis selection and app settings"""
 
     def __init__(self):
         super().__init__(density="compact", flat=True, border="b")
 
         with self, self.ctx.setup.provide_as("controls"):
-            v3.VAvatar(image=ASSETS.icon, size=28, classes="ml-4")
-            v3.VAppBarTitle(
+            v4.VAvatar(image=ASSETS.icon, size=28, classes="ml-4")
+            v4.VAppBarTitle(
                 "SiteView",
                 classes="flex-0-0 font-weight-medium mx-2",
             )
@@ -65,9 +65,9 @@ class AppHeader(v3.VAppBar):
                     click="controls.active_page = 'welcome'",
                 )
 
-            v3.VSpacer()
+            v4.VSpacer()
 
-            with v3.VBtnToggle(
+            with v4.VBtnToggle(
                 v_if="controls.data_loaded",
                 v_model="controls.active_analysis",
                 color="primary",
@@ -86,9 +86,9 @@ class AppHeader(v3.VAppBar):
                     value=("v[0]",),
                 )
 
-            v3.VSpacer()
+            v4.VSpacer()
 
-            v3.VDivider(vertical=True, classes="mx-2")
+            v4.VDivider(vertical=True, classes="mx-2")
 
             TooltipButton(
                 "controls.dark ? 'Light theme' : 'Dark theme'",
@@ -99,7 +99,7 @@ class AppHeader(v3.VAppBar):
                 click="controls.dark = !controls.dark",
             )
 
-            v3.VProgressLinear(
+            v4.VProgressLinear(
                 active=("trame__busy",),
                 indeterminate=True,
                 absolute=True,

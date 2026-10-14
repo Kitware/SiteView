@@ -1,7 +1,7 @@
 from trame.app import TrameApp
-from trame.ui.vuetify3 import VAppLayout
+from trame.ui.vuetify4 import VAppLayout
 from trame.widgets import colormaps, dockview, html, plotly, rca
-from trame.widgets import vuetify3 as v3
+from trame.widgets import vuetify4 as v4
 
 from e3sm_siteview import constants
 from e3sm_siteview.assets import ASSETS
@@ -16,15 +16,15 @@ from e3sm_siteview.components import (
 from e3sm_siteview.viewer import create_viewers
 
 
-class DialogTitle(v3.VCardTitle):
+class DialogTitle(v4.VCardTitle):
     """Setup dialog title, closable once data is loaded (needs "controls")"""
 
     def __init__(self, title):
         super().__init__(classes="d-flex align-center")
         with self:
             html.Span(title)
-            v3.VSpacer()
-            v3.VBtn(
+            v4.VSpacer()
+            v4.VBtn(
                 v_if="controls.data_loaded",
                 icon="mdi-close",
                 variant="text",
@@ -60,11 +60,11 @@ class E3smSiteView(TrameApp):
             vuetify_config=constants.VUETIFY_CONFIG,
             theme=("siteview_theme",),
         ) as self.ui:
-            with v3.VLayout():
+            with v4.VLayout():
                 header.AppHeader()
                 with self.ctx.setup.provide_as("controls"):
                     shortcuts.KeyboardShortcuts(self.ctrl.reset_camera)
-                    with v3.VDialog(
+                    with v4.VDialog(
                         absolute=True,
                         model_value=("controls.active_page === 'welcome'",),
                         persistent=True,
@@ -75,29 +75,29 @@ class E3smSiteView(TrameApp):
                             "controls.active_page = controls.data_loaded ? 'viz' : 'site'"
                         )
 
-                    with v3.VDialog(
+                    with v4.VDialog(
                         absolute=True,
                         model_value=("controls.active_page === 'site'",),
                         persistent=True,
                         scrollable=True,
                     ):
-                        with v3.VCard(rounded="lg"):
+                        with v4.VCard(rounded="lg"):
                             DialogTitle("Select your site location and region size")
-                            v3.VDivider()
+                            v4.VDivider()
                             site_selection.SiteSelection(self._select_region)
 
-                    with v3.VDialog(
+                    with v4.VDialog(
                         absolute=True,
                         persistent=True,
                         model_value=("controls.active_page === 'fields'",),
                         scrollable=True,
                     ):
-                        with v3.VCard(rounded="lg"):
+                        with v4.VCard(rounded="lg"):
                             DialogTitle("Select fields to load")
-                            v3.VDivider()
+                            v4.VDivider()
                             field_selection.FieldSelection(self._load_fields)
 
-                with v3.VMain():
+                with v4.VMain():
                     dockview.DockView(
                         ctx_name="views_container",
                         theme=("siteview_dockview_theme",),

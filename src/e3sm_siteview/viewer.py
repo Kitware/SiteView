@@ -5,7 +5,7 @@ from pathlib import Path
 from trame.app import TrameComponent, asynchronous
 from trame.ui.html import DivLayout
 from trame.widgets import client
-from trame.widgets import vuetify3 as v3
+from trame.widgets import vuetify4 as v4
 
 from e3sm_siteview.analysis import create_analysis, load_all_analysis
 from e3sm_siteview.cli import configure_and_parse
@@ -122,17 +122,17 @@ class E3SMAnalyser(TrameComponent):
         with DivLayout(self.server, self.template_name, classes="h-100") as self.ui:
             # Dock panels live outside of v-app, so provide the app theme
             with (
-                v3.VThemeProvider(
+                v4.VThemeProvider(
                     theme=("siteview_theme",), with_background=True, classes="h-100"
                 ),
-                v3.VContainer(classes="h-100 pa-0", fluid=True),
+                v4.VContainer(classes="h-100 pa-0", fluid=True),
             ):
                 with (
-                    v3.VRow(dense=True, classes="h-100"),
+                    v4.VRow(density="compact", classes="h-100"),
                     self.config.provide_as("conf"),
                     self.ctx.setup.provide_as("global"),
                 ):
-                    with v3.VCol(
+                    with v4.VCol(
                         v_for="tempate_name, viz_name in conf.panels",
                         key="viz_name",
                         classes="position-relative",

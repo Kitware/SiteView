@@ -1,12 +1,12 @@
 from trame.widgets import html
-from trame.widgets import vuetify3 as v3
+from trame.widgets import vuetify4 as v4
 
 
 def TooltipButton(tooltip, **kwargs):
-    return v3.VBtn(v_tooltip_top=f"{tooltip}", **kwargs)
+    return v4.VBtn(v_tooltip_top=f"{tooltip}", **kwargs)
 
 
-class TimeControls(v3.VFooter):
+class TimeControls(v4.VFooter):
     """Media player like time navigation"""
 
     def __init__(self):
@@ -58,10 +58,10 @@ class TimeControls(v3.VFooter):
 
             html.Div(
                 "Step {{ controls.time_index + 1 }} / {{ controls.time_index_max + 1 }}",
-                classes="text-body-2 text-medium-emphasis text-no-wrap mx-4",
+                classes="text-body-medium text-medium-emphasis text-no-wrap mx-4",
                 style="min-width: 7rem;",
             )
-            v3.VSlider(
+            v4.VSlider(
                 v_model="controls.time_index",
                 min=0,
                 max=("controls.time_index_max",),

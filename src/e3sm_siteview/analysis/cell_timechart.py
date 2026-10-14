@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from trame.app import TrameComponent
 from trame.ui.html import DivLayout
 from trame.widgets import html
-from trame.widgets import vuetify3 as v3
+from trame.widgets import vuetify4 as v4
 from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 
@@ -165,11 +165,11 @@ class CellTimeChart(TrameComponent):
                     classes="d-flex flex-column",
                 ),
             ):
-                with v3.VToolbar(
+                with v4.VToolbar(
                     density="compact", classes="px-2 d-flex ga-2 border-b"
                 ):
-                    v3.VIcon("mdi-chart-line")
-                    with v3.VSelect(
+                    v4.VIcon("mdi-chart-line")
+                    with v4.VSelect(
                         v_model="global.line_chart.fields",
                         items=(
                             "[...global.variables_3d, ...global.variables_2d].filter(v => v.selected).map(v => v.name)",
@@ -180,12 +180,12 @@ class CellTimeChart(TrameComponent):
                         classes="w-100",
                         multiple=True,
                     ):
-                        with v3.Template(v_slot_selection="{item, index}"):
+                        with v4.Template(v_slot_selection="{item, index}"):
                             html.Span(
                                 "{{ global.line_chart.fields?.length }} field{{global.line_chart.fields?.length > 1 ? 's' : ''}}",
                                 v_if="index == 0",
                             )
-                    with v3.VSelect(
+                    with v4.VSelect(
                         prepend_inner_icon="mdi-map-marker-outline",
                         v_model="global.line_chart.columns",
                         items=("global.col_items",),
@@ -195,12 +195,12 @@ class CellTimeChart(TrameComponent):
                         classes="w-100",
                         multiple=True,
                     ):
-                        with v3.Template(v_slot_selection="{item, index}"):
+                        with v4.Template(v_slot_selection="{item, index}"):
                             html.Span(
                                 "{{ global.line_chart.columns?.length }} column{{global.line_chart.columns?.length > 1 ? 's' : ''}}",
                                 v_if="index == 0",
                             )
-                    v3.VSlider(
+                    v4.VSlider(
                         prepend_icon="mdi-altimeter",
                         v_model="global.hslice.altitude",
                         step="1",
@@ -213,7 +213,7 @@ class CellTimeChart(TrameComponent):
 
                 with html.Div(classes="flex-fill pa-2 border-thin overflow-auto"):
                     # html.Div("{{ global.line_chart }}")
-                    with v3.VCard(
+                    with v4.VCard(
                         v_for="v, k in global.line_chart.results",
                         key="k",
                         variant="flat",
