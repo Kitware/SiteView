@@ -10,7 +10,7 @@ from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
-from e3sm_siteview.components.controls import ChartExportMenu
+from e3sm_siteview.components.controls import ChartExportMenu, ChartHint
 from e3sm_siteview.data_models import time_dates
 from e3sm_siteview.io import EAMColumnSource
 
@@ -271,6 +271,26 @@ class ColumnHeatMap(TrameComponent):
                     id=f"{self.name}_charts",
                     classes="flex-fill border-thin overflow-auto",
                 ):
+                    ChartHint(
+                        "!global.surface_chart.color_by",
+                        icon="mdi-cube-outline",
+                        title="No 3D field loaded",
+                        text="The heat map shows a column field over time.",
+                        action="Choose fields",
+                        click="global.active_page = 'fields'",
+                    )
+                    ChartHint(
+                        "global.surface_chart.color_by && global.surface_chart.column == null",
+                        icon="mdi-cursor-default-click-outline",
+                        title="Click a column in the 3D view",
+                        text=(
+                            "With Probes on, click a column and choose"
+                            " “Use for column heat map”, or pick one in the toolbar above."
+                        ),
+                        action="Change site",
+                        click="global.active_page = 'site'",
+                        action_if="!global.n_cols",
+                    )
                     with v4.VCard(
                         v_for="(v, i) in global.surface_chart.results",
                         key="v.field",
