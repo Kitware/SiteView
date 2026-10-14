@@ -84,6 +84,13 @@ def test_column_reader_empty_selection(data_file):
     assert table.GetNumberOfColumns() == 0
 
 
+def test_column_reader_hybrid_levels(hybrid_data_file):
+    # No lev variable: levels are derived from the hybrid coefficients
+    _, table = _reader(EAMColumnSource, hybrid_data_file, ["T"], [0])
+    lev = numpy_support.vtk_to_numpy(table.GetFieldData().GetArray("lev")).ravel()
+    np.testing.assert_allclose(lev, LEVELS)
+
+
 def test_surface_reader(data_file):
     reader = EAMSurfaceSource()
     reader.SetDataFileName(str(data_file))

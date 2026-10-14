@@ -150,7 +150,7 @@ def FindSpecialVariable(data, lev, hya, hyb):
 
     if len(_hyai) == 1:
         hyai = data[_hyai[0]][:].flatten()
-        hybi = data[_hyai[1]][:].flatten()
+        hybi = data[_hybi[0]][:].flatten()
         if not (len(hyai) == dim and len(hybi) == dim):
             raise Exception(
                 "Lengths of arrays for hya_ and hyb_ variables do not match"
