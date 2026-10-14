@@ -23,7 +23,7 @@ class TimeControls(v3.VFooter):
                     click="controls.time_index = 0",
                 )
                 TooltipButton(
-                    "'Previous time step'",
+                    "'Previous time step (←)'",
                     icon="mdi-step-backward",
                     variant="text",
                     density="comfortable",
@@ -31,7 +31,7 @@ class TimeControls(v3.VFooter):
                     click="controls.time_index > 0 && controls.time_index--",
                 )
                 TooltipButton(
-                    "controls.time_animating ? 'Pause animation' : 'Play animation'",
+                    "controls.time_animating ? 'Pause animation (Space)' : 'Play animation (Space)'",
                     icon=("controls.time_animating ? 'mdi-pause' : 'mdi-play'",),
                     color="primary",
                     variant="flat",
@@ -40,7 +40,7 @@ class TimeControls(v3.VFooter):
                     click="controls.time_animating = !controls.time_animating",
                 )
                 TooltipButton(
-                    "'Next time step'",
+                    "'Next time step (→)'",
                     icon="mdi-step-forward",
                     variant="text",
                     density="comfortable",

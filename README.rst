@@ -27,6 +27,21 @@ Run the application
 
     e3sm-siteview --cf ../data/connectivity.nc --df ../data/file_1.nc [...] ../data/file_n.nc
 
+Keyboard shortcuts
+----------------------------------------
+
+Once the data is loaded, the following shortcuts are available (they are ignored while typing in a field or when a setup dialog is open).
+
+=============  ==============================================================
+Key            Action
+=============  ==============================================================
+``Space``      Play / pause the time animation
+``←`` / ``→``  Previous / next time step (hold to keep stepping)
+``R``          Reset the camera
+``1`` - ``9``  Toggle the 3D view layers, in the order of the left toolbar
+``0``          Toggle the 10th layer (Probes)
+=============  ==============================================================
+
 Development setup
 ----------------------------------------
 

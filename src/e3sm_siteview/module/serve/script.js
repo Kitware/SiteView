@@ -29,7 +29,32 @@ function setCaret(input, pos) {
   });
 }
 
+// Keyboard shortcuts: { key: () => void } set by the KeyboardShortcuts component
+let shortcuts = null;
+
+function isEditing(target) {
+  return (
+    target?.isContentEditable ||
+    target?.closest?.("input, textarea, select, [role='slider']")
+  );
+}
+
+window.addEventListener("keydown", (event) => {
+  if (!shortcuts || event.defaultPrevented) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  if (isEditing(event.target)) return;
+  const action = shortcuts[event.key];
+  // Only time stepping auto-repeats while the key is held down
+  if (!action || (event.repeat && !event.key.startsWith("Arrow"))) return;
+  // Also prevents a focused button from being clicked by space
+  event.preventDefault();
+  action();
+});
+
 window.trame.utils.e3sm = {
+  setShortcuts(actions) {
+    shortcuts = actions;
+  },
   trackFormulaInput(event) {
     formulaInput = event.target;
   },
