@@ -11,6 +11,7 @@ from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
+from e3sm_siteview.components.controls import ChartExportMenu
 from e3sm_siteview.io import EAMColumnSource, EAMSurfaceSource
 
 NAME = "cellTimeChart"
@@ -210,8 +211,12 @@ class CellTimeChart(TrameComponent):
                         density="comfortable",
                         classes="w-100",
                     )
+                    ChartExportMenu(f"{self.name}_charts")
 
-                with html.Div(classes="flex-fill pa-2 border-thin overflow-auto"):
+                with html.Div(
+                    id=f"{self.name}_charts",
+                    classes="flex-fill pa-2 border-thin overflow-auto",
+                ):
                     # html.Div("{{ global.line_chart }}")
                     with v4.VCard(
                         v_for="v, k in global.line_chart.results",

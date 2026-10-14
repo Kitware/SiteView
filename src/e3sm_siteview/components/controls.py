@@ -61,6 +61,35 @@ def IconBtn(icon, tooltip=None, size="small", location="top", **kwargs):
     )
 
 
+def download_click(server, filename, mime_type, fn):
+    """Click handler downloading the bytes attachment returned by ``fn``"""
+    trigger = server.trigger_name(fn)
+    return f"utils.download('{filename}', trigger('{trigger}'), '{mime_type}')"
+
+
+def ChartExportMenu(container_id):
+    """Menu exporting the plotly charts within ``container_id`` as images"""
+    with v4.VMenu(location="bottom end"):
+        with v4.Template(v_slot_activator="{ props }"):
+            v4.VBtn(
+                v_bind="props",
+                v_tooltip_bottom="'Export charts'",
+                icon="mdi-download",
+                classes="rounded",
+                density="compact",
+            )
+        with v4.VList(density="compact"):
+            for fmt, title, subtitle in (
+                ("png", "PNG", "High resolution image"),
+                ("svg", "SVG", "Vector image"),
+            ):
+                v4.VListItem(
+                    title=title,
+                    subtitle=subtitle,
+                    click=f"utils.e3sm.exportPlots('{container_id}', '{fmt}')",
+                )
+
+
 class LeftFloatControls(html.Div):
     """Left column of the 3D view: layer rail and camera controls"""
 
@@ -172,7 +201,7 @@ class TitledScalarBar(html.Div):
 
 
 class CameraFocus(v4.VCard):
-    def __init__(self, reset_camera):
+    def __init__(self, reset_camera, export_image=None):
         super().__init__(
             v_show="controls.show_tools",
             classes="sv-float d-flex flex-column align-center pa-1 ga-1",
@@ -197,6 +226,15 @@ class CameraFocus(v4.VCard):
                 location="end",
                 click=f"controls.camera_focus = {is_earth} ? 'data' : 'earth'",
             )
+            if export_image:
+                v4.VDivider(classes="align-self-stretch")
+                IconBtn(
+                    "mdi-camera-outline",
+                    "Export image (PNG)",
+                    size="default",
+                    location="end",
+                    click=export_image,
+                )
 
 
 def SliderValue(text, min_width="3.5rem"):

@@ -10,6 +10,7 @@ from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
+from e3sm_siteview.components.controls import ChartExportMenu
 from e3sm_siteview.data_models import time_dates
 from e3sm_siteview.io import EAMColumnSource
 
@@ -264,8 +265,12 @@ class ColumnHeatMap(TrameComponent):
                             classes="rounded",
                             density="compact",
                         )
+                        ChartExportMenu(f"{self.name}_charts")
 
-                with html.Div(classes="flex-fill pa-2 border-thin overflow-auto"):
+                with html.Div(
+                    id=f"{self.name}_charts",
+                    classes="flex-fill pa-2 border-thin overflow-auto",
+                ):
                     with v4.VCard(
                         v_for="(v, i) in global.surface_chart.results",
                         key="v.field",
