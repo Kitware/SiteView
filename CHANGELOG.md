@@ -2,6 +2,115 @@
 
 <!-- version list -->
 
+## v1.3.1 (2026-10-14)
+
+### Bug Fixes
+
+- **charts**: Make toolbar easier to spot
+  ([`08b270f`](https://github.com/Kitware/SiteView/commit/08b270f945f6acb9a985413faee67b214317f92a))
+
+- **cli**: Add --version and clean up typos and debug comments
+  ([`20e0c63`](https://github.com/Kitware/SiteView/commit/20e0c63a870f2a9ad3c9a67cee21f68f5db9cca5))
+
+- **data-model**: Fix type
+  ([`c19d547`](https://github.com/Kitware/SiteView/commit/c19d547a9c8d471b5b01ebae76da0748c8868e75))
+
+- **data-model**: Handle empty time axis and selection edge cases
+  ([`c945aef`](https://github.com/Kitware/SiteView/commit/c945aef13809963cc392edf34504fb71140d7940))
+
+- **dock**: Restore analysis panels on reload and new browser tabs
+  ([`d56b9a7`](https://github.com/Kitware/SiteView/commit/d56b9a7db9a7cccaaaa0e70fee3686c4b504cea6))
+
+- **edges**: Add toggle button for h/vslice
+  ([`67a8ff0`](https://github.com/Kitware/SiteView/commit/67a8ff0bb0c2333628efa47e8296f42290467876))
+
+- **export**: Add export capability
+  ([`3513875`](https://github.com/Kitware/SiteView/commit/35138752a57417cbf28bc447664293793f28512f))
+
+- **find-data**: Add helper to insert available var name
+  ([`9a9a415`](https://github.com/Kitware/SiteView/commit/9a9a415a7b2d154b1d1cb38cf5ab48feaae232dc))
+
+- **hover**: Add scalar value
+  ([`b084368`](https://github.com/Kitware/SiteView/commit/b084368615becb407dbead9e0fa13dbe9367894a))
+
+- **keyboard**: Add shortcuts
+  ([`eff89e3`](https://github.com/Kitware/SiteView/commit/eff89e3c299a6b3ec45f9e93f989d0d56d02e572))
+
+- **labels**: Add labels to sliders
+  ([`3f99e63`](https://github.com/Kitware/SiteView/commit/3f99e63724fdb58030b8eb0d79115187d258507c))
+
+- **layout**: Improve ui layout
+  ([`08062f1`](https://github.com/Kitware/SiteView/commit/08062f1eec95b5dd2bdda2314560e854dff94c35))
+
+- **line-chart**: Properly label time
+  ([`640f025`](https://github.com/Kitware/SiteView/commit/640f0254bb2b5ba8b74e506aab697dd4e4ea5e75))
+
+- **map**: Make it interactive to pick location
+  ([`47df25a`](https://github.com/Kitware/SiteView/commit/47df25a907e78bd38f3dd46e42913204e0c0b3d8))
+
+- **map**: Place the data region of meshes within 0-180E correctly
+  ([`ab294d8`](https://github.com/Kitware/SiteView/commit/ab294d84047677da62997241916187d681fbcb69))
+
+- **orientation**: Zoom to make it bigger
+  ([`55bf793`](https://github.com/Kitware/SiteView/commit/55bf7932d9385c89055663247397795788689ed5))
+
+- **reader**: Derive levels from a single hyam/hybm pair
+  ([`a9a1a35`](https://github.com/Kitware/SiteView/commit/a9a1a35ec0010af756351212d35bc321bc70372a))
+
+- **site**: Homogeneous button height
+  ([`f81c552`](https://github.com/Kitware/SiteView/commit/f81c552072f54f400524fe08ddab4509cbe8c2b9))
+
+- **stepper**: Use stepper for initial site and field selection
+  ([`9f475d9`](https://github.com/Kitware/SiteView/commit/9f475d985f2a7b0e503171c5193ba664318719e4))
+
+- **theme**: Allow uniform theme in ui
+  ([`42b783b`](https://github.com/Kitware/SiteView/commit/42b783b5b6321b1c2e065bafbe60413234e281cc))
+
+- **time**: Display proper date
+  ([`48fda00`](https://github.com/Kitware/SiteView/commit/48fda00f79210221e7b8da79ef6ea99cd2fdd02a))
+
+- **ui**: Improve look and concistency
+  ([`3c130bf`](https://github.com/Kitware/SiteView/commit/3c130bf9a56d5543646fe11bc1fdd6ac77e6be02))
+
+- **ui**: Loading and empty placeholder
+  ([`223a3ad`](https://github.com/Kitware/SiteView/commit/223a3ada7167aa27d9854475ebfee1158199ad13))
+
+- **ui**: Small fixes
+  ([`2ad1805`](https://github.com/Kitware/SiteView/commit/2ad18053ffa8dd37f830da8628ceefd2bf4da722))
+
+- **vuetify**: Migrate to v4
+  ([`6aebc65`](https://github.com/Kitware/SiteView/commit/6aebc65d55cdbfdc576c559ce57998c3c05fe24e))
+
+### Continuous Integration
+
+- Run tests in the nox environment and drop template leftovers
+  ([`0a8e37e`](https://github.com/Kitware/SiteView/commit/0a8e37e28bf4909e4dcfec064729288e8a29377b))
+
+- Update rca
+  ([`ec30ad9`](https://github.com/Kitware/SiteView/commit/ec30ad9401c6e724e5c4d47c8502702065d2a1bb))
+
+### Documentation
+
+- Explain how time steps are handled with several data files
+  ([`752da45`](https://github.com/Kitware/SiteView/commit/752da4595a3fa2fc6973e8296a369009c77e4941))
+
+- Update readme pictures
+  ([`aeab31a`](https://github.com/Kitware/SiteView/commit/aeab31ac8882cf8b8681bc5df06d3511dcec2b25))
+
+- Update readme pictures
+  ([`519c6b5`](https://github.com/Kitware/SiteView/commit/519c6b5afbf6c68e56585256ca88cfff68e2f112))
+
+### Refactoring
+
+- **viz3d**: Split the 3D view into a package
+  ([`cf4409c`](https://github.com/Kitware/SiteView/commit/cf4409c3f4270eb6d60d216c1e8e7f8aa8ca7b38))
+
+### Testing
+
+- Cover readers, helpers and region selection with synthetic data
+  ([`982f1a9`](https://github.com/Kitware/SiteView/commit/982f1a960c010a3dea52906cbbe7f01af1b6032a))
+
+
 ## v1.3.0 (2026-10-13)
 
 ### Bug Fixes
