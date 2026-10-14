@@ -1,6 +1,7 @@
 import asyncio
 import json
 
+import netCDF4
 from trame.app import asynchronous, dataclass
 from vtkmodules.util import numpy_support
 from vtkmodules.vtkCommonCore import vtkIdList
@@ -23,6 +24,19 @@ def format_lat_lon(lon, lat):
         f"{abs(lat):.2f}°{'N' if lat >= 0 else 'S'}, "
         f"{abs(lon):.2f}°{'E' if lon >= 0 else 'W'}"
     )
+
+
+def time_dates(tdim):
+    """Formatted dates for a time dimension, or None when not decodable."""
+    if tdim is None or tdim.data is None or not tdim.units:
+        return None
+    try:
+        dates = netCDF4.num2date(
+            tdim.data, tdim.units, calendar=tdim.calendar or "standard"
+        )
+        return [d.strftime("%Y-%m-%d %H:%M") for d in dates]
+    except (ValueError, TypeError):
+        return None
 
 
 class Variable(dataclass.StateDataModel):
@@ -163,6 +177,7 @@ class GlobalParameters(dataclass.StateDataModel):
     time_index = dataclass.Sync(int, 0)
     time_index_max = dataclass.Sync(int, 0)
     time_value = dataclass.Sync(int, 0.0)
+    time_labels = dataclass.Sync(list[str], list)  # dates, empty if unknown
     time_animating = dataclass.Sync(bool, False)
     # Columns selection
     radius_deg = dataclass.Sync(float, 1.0)
@@ -308,6 +323,7 @@ class GlobalParameters(dataclass.StateDataModel):
             self.variables_3d = [Variable(self.server, name=str(n)) for n in names]
             tdim = reader.GetDimensions().get("time")
             n_time = tdim.size if tdim is not None else 1
+            self.time_labels = time_dates(tdim) or []
             self.time_values = list(range(n_time))
 
             if names:

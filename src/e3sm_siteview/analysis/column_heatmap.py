@@ -1,6 +1,5 @@
 import json
 
-import netCDF4
 import numpy as np
 import plotly.graph_objects as go
 from trame.app import TrameComponent
@@ -11,6 +10,7 @@ from trame_client.encoders.numpy import encode
 from vtkmodules.util import numpy_support
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
+from e3sm_siteview.data_models import time_dates
 from e3sm_siteview.io import EAMColumnSource
 
 NAME = "columnHeatMap"
@@ -69,16 +69,7 @@ class ColumnHeatMap(TrameComponent):
         if tdim is None:
             return [0]
 
-        if tdim.data is not None and tdim.units:
-            try:
-                dates = netCDF4.num2date(
-                    tdim.data, tdim.units, calendar=tdim.calendar or "standard"
-                )
-                return [d.strftime("%Y-%m-%d %H:%M") for d in dates]
-            except (ValueError, TypeError):
-                pass
-
-        return list(range(tdim.size))
+        return time_dates(tdim) or list(range(tdim.size))
 
     def refresh_data(self):
         self._compute_heatmap()
