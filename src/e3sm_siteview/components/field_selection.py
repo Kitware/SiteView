@@ -5,12 +5,12 @@ from e3sm_siteview import constants, module
 
 
 class FieldSelection(html.Div):
-    def __init__(self, next_fn, **_):
+    def __init__(self, **_):
         super().__init__(classes="step-pane ")
         self.server.enable_module(module)
 
         with self, self.ctx.setup.provide_as("fields"):
-            with html.Div(classes="px-6 pt-6 d-flex align-center ga-2"):
+            with html.Div(classes="px-6 pt-6"):
                 v4.VTextField(
                     v_model=("fields_filter", ""),
                     placeholder="Search fields (name or description)",
@@ -19,19 +19,6 @@ class FieldSelection(html.Div):
                     density="comfortable",
                     clearable=True,
                     hide_details=True,
-                )
-                v4.VBtn(
-                    "Load ({{ fields.variables_2d.filter(v=>v.selected).length }} + {{ fields.variables_3d.filter(v=>v.selected).length }})",
-                    classes="text-none",
-                    variant="flat",
-                    color="primary",
-                    size="large",
-                    append_icon="mdi-chevron-right",
-                    height=48,
-                    click=next_fn,
-                    disabled=(
-                        "fields.variables_2d.filter(v=>v.selected).length + fields.variables_3d.filter(v=>v.selected).length === 0",
-                    ),
                 )
 
             with html.Div(classes="flex-fill px-6 py-3"):

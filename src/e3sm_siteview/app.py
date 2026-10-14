@@ -1,36 +1,14 @@
 from trame.app import TrameApp
 from trame.ui.vuetify4 import VAppLayout
-from trame.widgets import colormaps, dockview, html, plotly, rca
+from trame.widgets import colormaps, dockview, plotly, rca
 from trame.widgets import vuetify4 as v4
 
 from e3sm_siteview import constants
 from e3sm_siteview.assets import ASSETS
-from e3sm_siteview.components import (
-    field_selection,
-    footer,
-    header,
-    shortcuts,
-    site_selection,
-    welcome,
-)
+from e3sm_siteview.components import footer, header, setup, shortcuts, welcome
 from e3sm_siteview.viewer import create_viewers
 
-
-class DialogTitle(v4.VCardTitle):
-    """Setup dialog title, closable once data is loaded (needs "controls")"""
-
-    def __init__(self, title):
-        super().__init__(classes="d-flex align-center")
-        with self:
-            html.Span(title)
-            v4.VSpacer()
-            v4.VBtn(
-                v_if="controls.data_loaded",
-                icon="mdi-close",
-                variant="text",
-                density="comfortable",
-                click="controls.active_page = 'viz'",
-            )
+SITE_KEYS = ("site_selected", "site_lat", "site_lon", "site_radius", "site_radius_unit")
 
 
 class E3smSiteView(TrameApp):
@@ -54,6 +32,10 @@ class E3smSiteView(TrameApp):
         # Theme shared by vuetify (app) and dockview
         self.ctx.setup.watch(["dark"], self._on_theme_change, eager=True)
 
+        # Values to restore when canceling a setup edit
+        self._setup_snapshot = None
+        self.ctx.setup.watch(["active_page"], self._on_page_change)
+
         with VAppLayout(
             self.server,
             fill_height=True,
@@ -75,27 +57,7 @@ class E3smSiteView(TrameApp):
                             "controls.active_page = controls.data_loaded ? 'viz' : 'site'"
                         )
 
-                    with v4.VDialog(
-                        absolute=True,
-                        model_value=("controls.active_page === 'site'",),
-                        persistent=True,
-                        scrollable=True,
-                    ):
-                        with v4.VCard(rounded="lg"):
-                            DialogTitle("Select your site location and region size")
-                            v4.VDivider()
-                            site_selection.SiteSelection(self._select_region)
-
-                    with v4.VDialog(
-                        absolute=True,
-                        persistent=True,
-                        model_value=("controls.active_page === 'fields'",),
-                        scrollable=True,
-                    ):
-                        with v4.VCard(rounded="lg"):
-                            DialogTitle("Select fields to load")
-                            v4.VDivider()
-                            field_selection.FieldSelection(self._load_fields)
+                    setup.SetupDialog(self._apply_setup, self._cancel_setup)
 
                 with v4.VMain():
                     dockview.DockView(
@@ -109,6 +71,37 @@ class E3smSiteView(TrameApp):
         with self.state:
             self.state.siteview_theme = "siteviewDark" if dark else "siteviewLight"
             self.state.siteview_dockview_theme = "Dark" if dark else "Light"
+
+    def _on_page_change(self, active_page):
+        if (
+            active_page in ("site", "fields")
+            and self.ctx.setup.data_loaded
+            and self._setup_snapshot is None
+        ):
+            self._setup_snapshot = {
+                "site": {k: self.state[k] for k in SITE_KEYS},
+                "fields": {v.name: v.selected for v in self._variables()},
+            }
+
+    def _variables(self):
+        return [*self.ctx.setup.variables_2d, *self.ctx.setup.variables_3d]
+
+    def _apply_setup(self):
+        self._setup_snapshot = None
+        if self.ctx.setup.active_page == "site":
+            self._select_region()
+        else:
+            self._load_fields()
+
+    def _cancel_setup(self):
+        snapshot, self._setup_snapshot = self._setup_snapshot, None
+        if snapshot:
+            self.state.update(snapshot["site"])
+            for v in self._variables():
+                selected = snapshot["fields"].get(v.name, v.selected)
+                if v.selected != selected:
+                    v.selected = selected
+        self.ctx.setup.active_page = "viz"
 
     def _select_region(self):
         if not self.ctx.setup.data_loaded:
