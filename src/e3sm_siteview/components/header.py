@@ -86,10 +86,6 @@ class AppHeader(v4.VAppBar):
                     value=("v[0]",),
                 )
 
-            v4.VSpacer()
-
-            v4.VDivider(vertical=True, classes="mx-2")
-
             TooltipButton(
                 "controls.dark ? 'Light theme' : 'Dark theme'",
                 icon=("controls.dark ? 'mdi-weather-sunny' : 'mdi-weather-night'",),
