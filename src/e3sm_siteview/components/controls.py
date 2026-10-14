@@ -386,10 +386,11 @@ class VerticalSlice(BaseToolbar):
 class FindData(BaseToolbar):
     def __init__(self):
         super().__init__(keys=["find_data"], icon="mdi-magnify-scan")
+        formula = "controls.find_data.formula"
         with self:
-            v3.VTextField(
+            with v3.VTextField(
                 v_show="controls.find_data.show",
-                v_model="controls.find_data.formula",
+                v_model=formula,
                 hide_details="auto",
                 density="compact",
                 append_inner_icon="mdi-view-grid-plus-outline",
@@ -399,8 +400,29 @@ class FindData(BaseToolbar):
                 classes="border-e-thin border-s-thin",
                 error_messages=("controls.find_data.error",),
                 click_appendInner=self._apply_find_data,
-                keydown_enter=self._apply_find_data,
-            )
+                v_on_keydown_enter=self._apply_find_data,
+                focus="utils.e3sm.trackFormulaInput($event)",
+            ):
+                # Variables menu: insert a field name at the cursor
+                with (
+                    v3.Template(v_slot_prepend_inner=True),
+                    v3.VMenu(location="bottom start", max_height=300),
+                ):
+                    with v3.Template(v_slot_activator="{ props }"):
+                        v3.VIcon(
+                            "mdi-function-variant",
+                            v_bind="props",
+                            v_tooltip_top="'Insert a variable'",
+                        )
+                    with v3.VList(density="compact"):
+                        v3.VListItem(
+                            v_for="f in controls.variables_3d.filter(v => v.selected)",
+                            key="f.name",
+                            title=("f.name",),
+                            click=(
+                                f"{formula} = utils.e3sm.insertInFormula({formula}, f.name)"
+                            ),
+                        )
 
     def _apply_find_data(self):
         self.server.controller.apply_find_data()

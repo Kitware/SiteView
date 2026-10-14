@@ -78,7 +78,8 @@ class FindDataControls(dataclass.StateDataModel):
     formula = dataclass.Sync(str, "")
     error = dataclass.Sync(str, "")
 
-    @dataclass.watch("formula")
+    # Sync: an async reset would clear the error of the formula being applied
+    @dataclass.watch("formula", sync=True)
     def _on_formula_change(self, _):
         self.error = ""
 

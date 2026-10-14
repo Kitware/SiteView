@@ -19,7 +19,41 @@ function darkLayout(layout) {
   };
 }
 
+// Last focused find data formula input (variables menu inserts there)
+let formulaInput = null;
+
+function setCaret(input, pos) {
+  setTimeout(() => {
+    input.focus();
+    input.setSelectionRange(pos, pos);
+  });
+}
+
 window.trame.utils.e3sm = {
+  trackFormulaInput(event) {
+    formulaInput = event.target;
+  },
+  // Insert text at the formula cursor
+  insertInFormula(formula, text) {
+    formula = formula || "";
+    let start = formula.length;
+    let end = formula.length;
+    if (formulaInput?.isConnected && formulaInput.value === formula) {
+      start = formulaInput.selectionStart ?? start;
+      end = formulaInput.selectionEnd ?? end;
+    }
+    const before = formula.slice(0, start);
+    const after = formula.slice(end);
+    const pre = before && !/[\s(]$/.test(before) ? " " : "";
+    const post = /^[\s)]/.test(after) ? "" : " ";
+    if (formulaInput?.isConnected) {
+      setCaret(
+        formulaInput,
+        before.length + pre.length + text.length + post.length,
+      );
+    }
+    return `${before}${pre}${text}${post}${after}`;
+  },
   formatCoords(lat, lon) {
     if (lat === null || lon === null || lat === undefined || lon === undefined)
       return "";
