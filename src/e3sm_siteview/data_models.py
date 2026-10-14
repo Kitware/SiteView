@@ -179,7 +179,7 @@ class GlobalParameters(dataclass.StateDataModel):
     time_values = dataclass.Sync(list[int], list)
     time_index = dataclass.Sync(int, 0)
     time_index_max = dataclass.Sync(int, 0)
-    time_value = dataclass.Sync(float, 0.0)
+    time_value = dataclass.Sync(int, 0)
     time_labels = dataclass.Sync(list[str], list)  # dates, empty if unknown
     time_animating = dataclass.Sync(bool, False)
     # Columns selection
