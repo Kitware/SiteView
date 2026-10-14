@@ -51,6 +51,29 @@ window.addEventListener("keydown", (event) => {
   action();
 });
 
+// Site map picking: lat/lon under the pointer, drag state and radius limits
+const KM_PER_DEG = 111.111;
+let mapDrag = null;
+
+function mapLatLon(event, el) {
+  const rect = el.getBoundingClientRect();
+  const x = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1);
+  const y = Math.min(Math.max((event.clientY - rect.top) / rect.height, 0), 1);
+  const round = (v) => Math.round(v * 1000) / 1000;
+  return { site_lat: round(90 - y * 180), site_lon: round(x * 360 - 180) };
+}
+
+// Coalesce drag updates to one state push per frame
+function mapMoveTo(event) {
+  mapDrag.next = mapLatLon(event, mapDrag.el);
+  if (mapDrag.frame) return;
+  mapDrag.frame = requestAnimationFrame(() => {
+    if (!mapDrag) return;
+    mapDrag.frame = 0;
+    mapDrag.setAll(mapDrag.next);
+  });
+}
+
 window.trame.utils.e3sm = {
   setShortcuts(actions) {
     shortcuts = actions;
@@ -78,6 +101,49 @@ window.trame.utils.e3sm = {
       );
     }
     return `${before}${pre}${text}${post}${after}`;
+  },
+  mapPointerDown(event, setAll) {
+    if (event.button !== 0) return;
+    const el = event.currentTarget;
+    el.setPointerCapture(event.pointerId);
+    el.classList.add("dragging");
+    mapDrag = { el, setAll, frame: 0, next: null };
+    mapMoveTo(event);
+  },
+  mapPointerMove(event) {
+    if (mapDrag) mapMoveTo(event);
+  },
+  mapPointerUp(event) {
+    if (!mapDrag) return;
+    cancelAnimationFrame(mapDrag.frame);
+    mapDrag.setAll(mapLatLon(event, mapDrag.el));
+    mapDrag.el.classList.remove("dragging");
+    mapDrag = null;
+  },
+  // Scroll to grow/shrink the radius, within the text field rules
+  scaleRadius(radius, unit, deltaY) {
+    const scale = unit === "km" ? KM_PER_DEG : 1;
+    const value = (Number(radius) || 1) * Math.exp(-deltaY / 500);
+    const clamped = Math.min(Math.max(value, 0.1 * scale), 89.9 * scale);
+    return Number(clamped.toPrecision(3));
+  },
+  mapPosition(lat, lon) {
+    return {
+      left: `${((Number(lon) + 180) / 360) * 100}%`,
+      top: `${((90 - Number(lat)) / 180) * 100}%`,
+    };
+  },
+  // Radius circle drawn in degrees of longitude on the equirectangular map
+  mapRadius(lat, lon, radius, unit, mapSize) {
+    const width = mapSize?.size?.width || 0;
+    const deg = (Number(radius) || 0) / (unit === "km" ? KM_PER_DEG : 1);
+    const base = Math.min((deg * width) / 360, width / 4);
+    const diameter = `${Math.round(Math.max(2 * base, 8))}px`;
+    return {
+      ...this.mapPosition(lat, lon),
+      width: diameter,
+      height: diameter,
+    };
   },
   formatCoords(lat, lon) {
     if (lat === null || lon === null || lat === undefined || lon === undefined)

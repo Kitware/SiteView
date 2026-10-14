@@ -8,13 +8,20 @@ from e3sm_siteview import constants, module
 
 
 class CoordinatePreview(html.Div):
-    def __init__(self, **_):
-        super().__init__(classes="coord-preview mt-4")
-        self.server.enable_module(module)
+    """Equirectangular map: click or drag to move the site, scroll for radius"""
 
-        self.state.site_marker_x = 0
-        self.state.site_marker_y = 0
-        self.state.site_marker_diameter = 0
+    def __init__(self, **_):
+        super().__init__(
+            classes="coord-preview mt-4",
+            v_on_pointerdown="utils.e3sm.mapPointerDown($event, setAll)",
+            v_on_pointermove="utils.e3sm.mapPointerMove($event)",
+            v_on_pointerup="utils.e3sm.mapPointerUp($event)",
+            v_on_lostpointercapture="utils.e3sm.mapPointerUp($event)",
+            v_on_wheel_prevent=(
+                "site_radius = utils.e3sm.scaleRadius(site_radius, site_radius_unit, $event.deltaY)"
+            ),
+        )
+        self.server.enable_module(module)
         self.state.setdefault("data_regions", [])
 
         with self:
@@ -30,31 +37,30 @@ class CoordinatePreview(html.Div):
                 html.Div(
                     classes="coord-radius",
                     style=(
-                        "{ left: site_marker_x + '%', top: site_marker_y + '%', width: site_marker_diameter + 'px', height: site_marker_diameter + 'px' }",
+                        "utils.e3sm.mapRadius(site_lat, site_lon, site_radius, site_radius_unit, site_map_size)",
                     ),
                 )
+                with html.Div(
+                    v_for="site in site_all",
+                    key="site.value",
+                    classes=(
+                        "['coord-site', { active: site.value === site_selected }]",
+                    ),
+                    style=("utils.e3sm.mapPosition(site.lat, site.lon)",),
+                    v_on_pointerdown_stop="() => {}",
+                    click="site_selected = site.value",
+                ):
+                    v3.VTooltip(
+                        activator="parent", location="top", text=("site.title",)
+                    )
                 html.Div(
                     classes="coord-marker",
-                    style=("{ left: site_marker_x + '%', top: site_marker_y + '%' }",),
+                    style=("utils.e3sm.mapPosition(site_lat, site_lon)",),
                 )
-
-    @change("site_lat", "site_lon")
-    def _update_marker(self, site_lat, site_lon, **_):
-        self.state.site_marker_x = ((site_lon + 180) / 360) * 100
-        self.state.site_marker_y = ((90 - site_lat) / 180) * 100
-
-    @change("site_radius", "site_radius_unit", "site_map_size")
-    def _update_radius(self, site_radius, site_radius_unit, site_map_size, **_):
-        if not site_radius:
-            site_radius = 0
-        if site_map_size:
-            size_width = site_map_size["size"]["width"]
-            deg2px = float(size_width / 360)
-            if site_radius_unit == "km":
-                site_radius = float(site_radius) / 111.111  # convert to degree
-
-            base = min(float(site_radius) * deg2px, size_width / 4)
-            self.state.site_marker_diameter = int(0.5 + max(2 * base, 8))
+            html.Div(
+                "Click or drag to move · Scroll to resize",
+                classes="coord-hint text-caption",
+            )
 
 
 class SiteSelection(v3.VRow):
