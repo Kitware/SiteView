@@ -9,8 +9,14 @@ on:
 jobs:
   validation:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # min supported, current, latest
+        python-version: ["3.10", "3.12", "3.14"]
+    name: validation (py${{ matrix.python-version }})
     env:
-      UV_PYTHON: "3.12"
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -29,5 +35,9 @@ jobs:
           uv run e3sm-siteview --help
         shell: bash -l {0}
 
-      - name: Nox
-        run: uv run nox
+      - name: Lint
+        if: matrix.python-version == '3.12'
+        run: uv run nox -s lint
+
+      - name: Tests
+        run: uv run nox -s tests

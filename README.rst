@@ -29,7 +29,7 @@ This library is open source and follows the Apache Software License. See `LICENS
 Installation
 ----------------------------------------
 
-SiteView requires Python 3.12 or newer.
+SiteView requires Python 3.10 or newer.
 
 .. code-block:: console
 
