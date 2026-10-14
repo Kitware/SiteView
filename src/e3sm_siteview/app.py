@@ -9,6 +9,7 @@ from e3sm_siteview.components import (
     field_selection,
     footer,
     header,
+    shortcuts,
     site_selection,
     welcome,
 )
@@ -62,6 +63,7 @@ class E3smSiteView(TrameApp):
             with v3.VLayout():
                 header.AppHeader()
                 with self.ctx.setup.provide_as("controls"):
+                    shortcuts.KeyboardShortcuts(self.ctrl.reset_camera)
                     with v3.VDialog(
                         absolute=True,
                         model_value=("controls.active_page === 'welcome'",),

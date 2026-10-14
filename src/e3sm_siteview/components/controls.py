@@ -26,6 +26,19 @@ VIZ_LAYERS = [
     ("probes", "mdi-map-marker-plus", "Probes"),
 ]
 VIZ_LAYER_INFO = {key: (icon, title) for key, icon, title in VIZ_LAYERS}
+# Keyboard shortcut toggling each layer, in the VIZ_LAYERS order
+VIZ_LAYER_SHORTCUTS = dict(zip([k for k, *_ in VIZ_LAYERS], "1234567890", strict=False))
+
+
+def toggle_layer(key):
+    """JS expression adding/removing a VIZ_LAYERS key of controls.active_viz"""
+    active = f"controls.active_viz.includes('{key}')"
+    return (
+        f"controls.active_viz = {active}"
+        f" ? controls.active_viz.filter(v => v !== '{key}')"
+        f" : [...controls.active_viz, '{key}']"
+    )
+
 
 # Shared props so every input of the floating cards looks the same
 FIELD_PROPS = {"density": "compact", "hide_details": True, "variant": "outlined"}
@@ -77,18 +90,15 @@ class VizLayerRail(v3.VCard):
             v3.VDivider()
             for key, icon, title in VIZ_LAYERS:
                 active = f"controls.active_viz.includes('{key}')"
+                shortcut = VIZ_LAYER_SHORTCUTS.get(key)
                 IconBtn(
                     icon,
-                    title,
+                    f"{title} ({shortcut})" if shortcut else title,
                     size="default",
                     location="end",
                     color=(f"{active} ? 'primary' : undefined",),
                     variant=(f"{active} ? 'tonal' : 'text'",),
-                    click=(
-                        f"controls.active_viz = {active}"
-                        f" ? controls.active_viz.filter(v => v !== '{key}')"
-                        f" : [...controls.active_viz, '{key}']"
-                    ),
+                    click=toggle_layer(key),
                 )
 
 
@@ -171,7 +181,7 @@ class CameraFocus(v3.VCard):
         with self:
             IconBtn(
                 "mdi-crop-free",
-                "Reset camera",
+                "Reset camera (R)",
                 size="default",
                 location="end",
                 click=reset_camera,
