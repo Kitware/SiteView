@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 
 import netCDF4
 from trame.app import asynchronous, dataclass
@@ -11,6 +12,8 @@ from vtkmodules.vtkFiltersCore import vtkAppendPolyData, vtkCellCenters
 from vtkmodules.vtkFiltersGeneral import vtkTransformFilter
 
 from e3sm_siteview.constants import FIELDS_METADATA
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_lon(lon):
@@ -56,7 +59,7 @@ class Variable(dataclass.StateDataModel):
                 self.description = entry.get("description")
                 return
 
-        print(f"No matching field name for {name}")
+        logger.info("No metadata for field %s", name)
 
     @dataclass.watch("selected", sync=True)
     def _on_selected(self, _):
@@ -270,12 +273,14 @@ class GlobalParameters(dataclass.StateDataModel):
 
     @dataclass.watch("time_values", sync=True)
     def _on_time_values(self, values):
-        self.time_index_max = len(values) - 1
-        self.time_value = values[self.time_index]
+        self.time_index_max = max(len(values) - 1, 0)
+        self.time_index = min(self.time_index, self.time_index_max)
+        self.time_value = values[self.time_index] if values else 0
 
     @dataclass.watch("time_index", sync=True)
     def _on_time_index(self, time_index):
-        self.time_value = self.time_values[time_index]
+        if time_index < len(self.time_values):
+            self.time_value = self.time_values[time_index]
 
     @dataclass.watch("time_animating")
     def _on_animation(self, time_animating):
@@ -369,7 +374,7 @@ class GlobalParameters(dataclass.StateDataModel):
         ):
             selected = [f.name for f in variables if f.selected]
             if controls.color_by not in selected:
-                controls.color_by = selected[0] if selected else None
+                controls.color_by = selected[0] if selected else ""
 
     @dataclass.watch("time_value", sync=True)
     def update_reader_time(self, time_value):
