@@ -1,7 +1,11 @@
+from e3sm_siteview import __version__
+
+
 def configure_and_parse(parser):
+    parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument(
         "--cf",
-        help="the nc file with connnectivity information",
+        help="the nc file with connectivity information",
         required=True,
     )
     parser.add_argument(

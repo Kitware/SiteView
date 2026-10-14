@@ -74,9 +74,6 @@ class E3SMAnalyser(TrameComponent):
         self._name = Path(data_file).name
         self.config = VisualizationAnalysis(self.server)
 
-        # max_col_id = int(self.ctx.mesh.GetCellData().GetArray("col_id").GetRange()[1])
-        # print("n_cols", max_col_id)
-
         self.columns = EAMColumnSource()
         self.columns.SetDataFileName(data_file)
         self.columns.SetColumnIds(json.dumps([0]))
@@ -133,12 +130,12 @@ class E3SMAnalyser(TrameComponent):
                     self.ctx.setup.provide_as("global"),
                 ):
                     with v4.VCol(
-                        v_for="tempate_name, viz_name in conf.panels",
+                        v_for="template_name, viz_name in conf.panels",
                         key="viz_name",
                         classes="position-relative",
                         v_show="global.active_analysis.includes(viz_name)",
                     ):
-                        client.ServerTemplate(name=("tempate_name",))
+                        client.ServerTemplate(name=("template_name",))
 
     def add_analysis(self, *analysis_types):
         panels = {}
@@ -156,7 +153,6 @@ class E3SMAnalyser(TrameComponent):
         )
 
     async def _add_panel(self, panel_id, label, template_name):
-        # print("_add_panel", panel_id, label, template_name)
         self.ctx.views_container.add_panel(panel_id, label, template_name)
 
     @property
