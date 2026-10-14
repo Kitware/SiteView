@@ -64,114 +64,101 @@ class CoordinatePreview(html.Div):
 
 
 class SiteSelection(v4.VRow):
-    def __init__(self, next_fn, **_):
+    def __init__(self, **_):
         super().__init__(classes="pa-6 align-center")
         self.server.enable_module(module)
 
         with self:
-            with self.ctx.setup.provide_as("config"):
-                with v4.VCol():
-                    with v4.VSelect(
-                        v_model=("site_selected", None),
-                        items=("site_all", constants.SITES),
-                        item_title="title",
-                        item_value="value",
-                        label="ARM User Facility",
-                        prepend_inner_icon="mdi-domain",
-                        variant="outlined",
-                        density="comfortable",
-                        clearable=True,
-                    ):
-                        with v4.Template(v_slot_item="{ props, item }"):
-                            v4.VListItem(
-                                v_bind="props",
-                                subtitle=(
-                                    "utils?.e3sm?.formatCoords(item?.lat, item?.lon)",
-                                ),
-                            )
-                    html.Div(
-                        "Coordinates",
-                        classes="text-label-medium text-uppercase text-medium-emphasis mt-2 mb-3",
-                    )
-                    with v4.VRow(density="compact"):
-                        with v4.VCol(cols="6"):
-                            v4.VTextField(
-                                v_model_number=("site_lat", 70),
-                                type="number",
-                                step="0.001",
-                                label="Latitude",
-                                suffix=("site_lat < 0 ? '°S':'°N'",),
-                                variant="outlined",
-                                density="comfortable",
-                                rules=(
-                                    "[(v) => (v >= -90 && v <= 90) || 'Latitude must be between -90 and 90']",
-                                ),
-                            )
-                        with v4.VCol(cols="6"):
-                            v4.VTextField(
-                                v_model_number=("site_lon", 180),
-                                type="number",
-                                step="0.001",
-                                label="Longitude",
-                                suffix=("site_lon < 0 ? '°W':'°E'",),
-                                variant="outlined",
-                                density="comfortable",
-                                rules=(
-                                    "[(v) => (v >= -180 && v <= 180) || 'Longitude must be between -180 and 180']",
-                                ),
-                            )
+            with v4.VCol():
+                with v4.VSelect(
+                    v_model=("site_selected", None),
+                    items=("site_all", constants.SITES),
+                    item_title="title",
+                    item_value="value",
+                    label="ARM User Facility",
+                    prepend_inner_icon="mdi-domain",
+                    variant="outlined",
+                    density="comfortable",
+                    clearable=True,
+                ):
+                    with v4.Template(v_slot_item="{ props, item }"):
+                        v4.VListItem(
+                            v_bind="props",
+                            subtitle=(
+                                "utils?.e3sm?.formatCoords(item?.lat, item?.lon)",
+                            ),
+                        )
+                html.Div(
+                    "Coordinates",
+                    classes="text-label-medium text-uppercase text-medium-emphasis mt-2 mb-3",
+                )
+                with v4.VRow(density="compact"):
+                    with v4.VCol(cols="6"):
+                        v4.VTextField(
+                            v_model_number=("site_lat", 70),
+                            type="number",
+                            step="0.001",
+                            label="Latitude",
+                            suffix=("site_lat < 0 ? '°S':'°N'",),
+                            variant="outlined",
+                            density="comfortable",
+                            rules=(
+                                "[(v) => (v >= -90 && v <= 90) || 'Latitude must be between -90 and 90']",
+                            ),
+                        )
+                    with v4.VCol(cols="6"):
+                        v4.VTextField(
+                            v_model_number=("site_lon", 180),
+                            type="number",
+                            step="0.001",
+                            label="Longitude",
+                            suffix=("site_lon < 0 ? '°W':'°E'",),
+                            variant="outlined",
+                            density="comfortable",
+                            rules=(
+                                "[(v) => (v >= -180 && v <= 180) || 'Longitude must be between -180 and 180']",
+                            ),
+                        )
 
-                    html.Div(
-                        "Region of Interest",
-                        classes="text-label-medium text-uppercase text-medium-emphasis mt-2 mb-3",
-                    )
-                    with v4.VRow(density="compact"):
-                        with v4.VCol():
-                            v4.VTextField(
-                                v_model_number=("site_radius", 5),
-                                type="number",
-                                step="0.1",
-                                min="0",
-                                label="Radius",
-                                prepend_inner_icon="mdi-radius-outline",
-                                variant="outlined",
-                                density="comfortable",
-                                rules=(
-                                    """[
-                                    (v) => (v >= 0) || 'Radius must be greater than or equal to 0',
-                                    (v) => (v / (site_radius_unit === 'km' ? 111.111 : 1) < 90) || 'Radius must be smaller than 90° or 10 000 Km'
-                                ]""",
-                                ),
-                            )
-                        with v4.VCol(cols="auto"):
-                            # Same height (48px) and outline as a comfortable outlined field
-                            with v4.VBtnToggle(
-                                v_model=("site_radius_unit", "deg"),
-                                color="primary",
-                                base_color="grey",
-                                variant="outlined",
-                                divided=True,
-                                mandatory=True,
-                                rounded=True,
-                                style="height: 48px;",
-                            ):
-                                v4.VBtn("km", value="km", classes="text-none px-4")
-                                v4.VBtn("deg", value="deg", classes="text-none px-4")
+                html.Div(
+                    "Region of Interest",
+                    classes="text-label-medium text-uppercase text-medium-emphasis mt-2 mb-3",
+                )
+                with v4.VRow(density="compact"):
+                    with v4.VCol():
+                        v4.VTextField(
+                            v_model_number=("site_radius", 5),
+                            type="number",
+                            step="0.1",
+                            min="0",
+                            label="Radius",
+                            prepend_inner_icon="mdi-radius-outline",
+                            variant="outlined",
+                            density="comfortable",
+                            rules=(
+                                """[
+                                (v) => (v >= 0) || 'Radius must be greater than or equal to 0',
+                                (v) => (v / (site_radius_unit === 'km' ? 111.111 : 1) < 90) || 'Radius must be smaller than 90° or 10 000 Km'
+                            ]""",
+                            ),
+                        )
+                    with v4.VCol(cols="auto"):
+                        # Same height (48px) and outline as a comfortable outlined field
+                        with v4.VBtnToggle(
+                            v_model=("site_radius_unit", "deg"),
+                            color="primary",
+                            base_color="grey",
+                            variant="outlined",
+                            divided=True,
+                            mandatory=True,
+                            rounded=True,
+                            style="height: 48px;",
+                        ):
+                            v4.VBtn("km", value="km", classes="text-none px-4")
+                            v4.VBtn("deg", value="deg", classes="text-none px-4")
 
-                    v4.VBtn(
-                        "Load {{ config.n_cols }} column{{ config.n_cols > 1 && 's' || '' }}",
-                        classes="text-none mt-1",
-                        variant="flat",
-                        color="primary",
-                        size="large",
-                        append_icon="mdi-chevron-right",
-                        style="height: 48px;",
-                        click=next_fn,
-                        block=True,
-                    )
-
-                with v4.VCol():
-                    CoordinatePreview()
+            with v4.VCol():
+                CoordinatePreview()
 
     @change("site_selected")
     def _on_site_selected(self, site_selected, **_):
