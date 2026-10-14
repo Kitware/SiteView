@@ -737,7 +737,9 @@ class Viz3D(TrameComponent):
         self.orientation_widget = vtkOrientationMarkerWidget(
             orientation_marker=earth_with_axis,
             interactor=renderWindowInteractor,
-            viewport=(0.85, 0.85, 1, 1),
+            viewport=(0.88, 0.88, 1, 1),
+            # Zoom in so the marker fills its viewport and hugs the corner
+            zoom=1.25,
         )
         self.orientation_widget.EnabledOn()
         self.orientation_widget.InteractiveOff()
