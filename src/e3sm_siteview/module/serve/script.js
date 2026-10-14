@@ -19,6 +19,32 @@ function darkLayout(layout) {
   };
 }
 
+// Plotly defaults, so exported charts look the same in light and dark theme
+function exportLayout(layout) {
+  const axis = (a) => ({
+    ...a,
+    gridcolor: "#eee",
+    zerolinecolor: "#444",
+    linecolor: "#444",
+  });
+  return {
+    ...layout,
+    paper_bgcolor: "white",
+    plot_bgcolor: "white",
+    font: { ...layout.font, color: "#444" },
+    xaxis: axis(layout.xaxis),
+    yaxis: axis(layout.yaxis),
+  };
+}
+
+function exportName(layout, index) {
+  const title = layout.title?.text || layout.yaxis?.title?.text;
+  const name = String(title || `chart-${index + 1}`)
+    .replace(/[^\w.-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `siteview-${name}`;
+}
+
 // Last focused find data formula input (variables menu inserts there)
 let formulaInput = null;
 
@@ -164,6 +190,22 @@ window.trame.utils.e3sm = {
     return `${txt} hPa`;
   },
   // Adapt a plotly layout to the app theme
+  // Download each plotly chart of a container as a png or svg file
+  async exportPlots(containerId, format) {
+    const charts = document.querySelectorAll(`#${containerId} .js-plotly-plot`);
+    for (const [index, chart] of charts.entries()) {
+      await window.Plotly.downloadImage(
+        { data: chart.data, layout: exportLayout(chart.layout) },
+        {
+          format,
+          filename: exportName(chart.layout, index),
+          width: chart.clientWidth,
+          height: chart.clientHeight,
+          scale: format === "png" ? 3 : 1,
+        },
+      );
+    }
+  },
   plotlyLayout(layout, dark) {
     if (!dark || !layout) return layout;
     let themed = DARK_LAYOUTS.get(layout);
