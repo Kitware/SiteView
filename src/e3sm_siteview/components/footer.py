@@ -57,9 +57,10 @@ class TimeControls(v4.VFooter):
                 )
 
             html.Div(
-                "Step {{ controls.time_index + 1 }} / {{ controls.time_index_max + 1 }}",
-                classes="text-body-medium text-medium-emphasis text-no-wrap mx-4",
-                style="min-width: 7rem;",
+                "{{ controls.time_labels[controls.time_index] }} ({{ controls.time_index + 1 }}/{{ controls.time_index_max + 1 }})",
+                v_if="controls.time_labels.length",
+                classes="text-body-medium text-no-wrap ml-4",  # text-caption  text-medium-emphasis
+                style="min-width: 13rem;",
             )
             v4.VSlider(
                 v_model="controls.time_index",
