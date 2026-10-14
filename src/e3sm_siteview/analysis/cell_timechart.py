@@ -12,6 +12,7 @@ from vtkmodules.util import numpy_support
 
 from e3sm_siteview.analysis import ANALYSIS_ID, register_analysis
 from e3sm_siteview.components.controls import ChartExportMenu, ChartHint
+from e3sm_siteview.data_models import time_dates
 from e3sm_siteview.io import EAMColumnSource, EAMSurfaceSource
 
 NAME = "cellTimeChart"
@@ -49,6 +50,17 @@ class CellTimeChart(TrameComponent):
 
     def refresh_data(self):
         self._compute_line_plots()
+
+    def _time_labels(self):
+        n_steps = self.ctx.setup.time_index_max + 1
+        for reader in (self.local_data_reader, self.local_surface_reader):
+            if reader is None:
+                continue
+            dates = time_dates(reader.GetDimensions().get("time"))
+            if dates and len(dates) == n_steps:
+                return dates
+
+        return list(range(n_steps))
 
     def _subscribe(self, obj, watch, callback, eager=False, sync=False):
         self._subscriptions.append(obj.watch(watch, callback, eager=eager, sync=sync))
@@ -108,7 +120,13 @@ class CellTimeChart(TrameComponent):
                         data[field].setdefault(col_id, []).append(value)
 
         labels = {item["value"]: item["title"] for item in self.ctx.setup.col_items}
-        t_array = np.array(range(self.ctx.setup.time_index_max + 1))
+        time_labels = self._time_labels()
+
+        # Only label a handful of time steps to keep the axis readable
+        tick_step = max(1, len(time_labels) // 6)
+        tick_vals = time_labels[::tick_step]
+        tick_text = [str(v).replace(" ", "<br>") for v in tick_vals]
+
         figs = []
         for field, cols in data.items():
             if not cols:
@@ -120,11 +138,12 @@ class CellTimeChart(TrameComponent):
                 array = np.array(values)
                 fig.add_trace(
                     go.Scatter(
-                        x=t_array,
+                        x=time_labels,
                         y=array,
                         name=labels.get(col, str(col)),
                         mode="lines",
                         line={"color": COLORS[idx % len(COLORS)]},
+                        hovertemplate=f"time: %{{x}}<br>{field}: %{{y}}",
                     )
                 )
                 y0, y1 = min_max(array, y0, y1)
@@ -132,9 +151,9 @@ class CellTimeChart(TrameComponent):
             # Add time vertical line
             fig.add_shape(
                 type="line",
-                x0=time_idx,
+                x0=time_labels[time_idx],
                 y0=y0,
-                x1=time_idx,
+                x1=time_labels[time_idx],
                 y1=y1,
                 line={
                     "width": 1,
@@ -145,8 +164,16 @@ class CellTimeChart(TrameComponent):
 
             fig.update_layout(
                 # title={"text": field},
+                xaxis={
+                    "title": "time",
+                    "type": "category",
+                    "tickmode": "array",
+                    "tickvals": tick_vals,
+                    "ticktext": tick_text,
+                    "tickangle": 0,
+                },
                 yaxis={"title": {"text": field}},
-                margin={"b": 0, "l": 0, "r": 0, "t": 0},
+                margin={"b": 60, "l": 0, "r": 0, "t": 0},
                 plot_bgcolor="white",
                 # Plotly hides the legend of single trace charts
                 showlegend=True,
