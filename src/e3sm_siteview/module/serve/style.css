@@ -25,6 +25,50 @@
   background-size: 100% 100%;
   background-position: center;
   border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.coord-preview .coord-marker,
+.coord-preview .coord-radius {
+  pointer-events: none;
+}
+
+/* Follow the pointer while dragging */
+.coord-preview.dragging .coord-marker,
+.coord-preview.dragging .coord-radius {
+  transition: none;
+}
+
+.coord-site {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  margin-top: -5px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: rgb(var(--v-theme-primary));
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.coord-site:hover,
+.coord-site.active {
+  background: #ffd54f;
+}
+
+.coord-hint {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
 }
 
 .coord-marker {
