@@ -74,7 +74,7 @@ def ChartExportMenu(container_id):
             v4.VBtn(
                 v_bind="props",
                 v_tooltip_bottom="'Export charts'",
-                icon="mdi-download",
+                icon="mdi-camera-outline",
                 classes="rounded",
                 density="compact",
             )
