@@ -202,6 +202,7 @@ class CellTimeChart(TrameComponent):
                         items=(
                             "[...global.variables_3d, ...global.variables_2d].filter(v => v.selected).map(v => v.name)",
                         ),
+                        placeholder="Select variable(s)",
                         density="compact",
                         hide_details=True,
                         variant="flat",
@@ -217,6 +218,7 @@ class CellTimeChart(TrameComponent):
                         prepend_inner_icon="mdi-map-marker-outline",
                         v_model="global.line_chart.columns",
                         items=("global.col_items",),
+                        placeholder="Select column(s)",
                         density="compact",
                         hide_details=True,
                         variant="flat",
