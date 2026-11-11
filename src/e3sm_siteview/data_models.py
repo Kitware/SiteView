@@ -11,7 +11,7 @@ from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkFiltersCore import vtkAppendPolyData, vtkCellCenters
 from vtkmodules.vtkFiltersGeneral import vtkTransformFilter
 
-from e3sm_siteview.constants import FIELDS_METADATA
+from e3sm_siteview.constants import FIELDS_METADATA, ZSCALE_MAX
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +128,19 @@ class ColumnControls(dataclass.StateDataModel):
 class ZScaleControls(dataclass.StateDataModel):
     show = dataclass.Sync(bool, True)
     scale = dataclass.Sync(float, 500, type_checking=dataclass.TypeValidation.SKIP)
+    scale_max = dataclass.Sync(
+        float, ZSCALE_MAX, type_checking=dataclass.TypeValidation.SKIP
+    )
+
+    def fit_range(self, scale):
+        """Double the slider range when the scale is close to its end, and
+        halve it back (down to ZSCALE_DEFAULT_MAX) while in its lower quarter."""
+        scale_max = self.scale_max
+        if scale >= 0.9 * scale_max:
+            scale_max *= 2
+        while scale_max > ZSCALE_MAX and scale < 0.25 * scale_max:
+            scale_max /= 2
+        self.scale_max = scale_max
 
 
 class ProbeInfo(dataclass.StateDataModel):

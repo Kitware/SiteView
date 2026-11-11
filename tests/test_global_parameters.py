@@ -4,6 +4,7 @@ import pytest
 from conftest import N_TIME
 from trame.app import get_server
 
+from e3sm_siteview.constants import ZSCALE_MAX
 from e3sm_siteview.data_models import GlobalParameters
 from e3sm_siteview.io import EAMColumnSource, EAMMeshSource, EAMSurfaceSource
 
@@ -96,3 +97,17 @@ def test_time_values_update(setup):
     setup.time_values = []
     assert setup.time_index_max == 0
     assert setup.time_value == 0
+
+
+def test_zscale_fit_range(setup):
+    zscale = setup.zscale
+    zscale.fit_range(4000)
+    assert zscale.scale_max == ZSCALE_MAX
+    zscale.fit_range(4600)
+    assert zscale.scale_max == 2 * ZSCALE_MAX
+    zscale.fit_range(9500)
+    assert zscale.scale_max == 4 * ZSCALE_MAX
+    zscale.fit_range(8000)
+    assert zscale.scale_max == 4 * ZSCALE_MAX
+    zscale.fit_range(100)
+    assert zscale.scale_max == ZSCALE_MAX

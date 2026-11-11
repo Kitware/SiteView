@@ -329,8 +329,9 @@ class ZScale(LayerSection):
             with v4.VSlider(
                 v_model="controls.zscale.scale",
                 min=1,
-                max=5000,
+                max=("controls.zscale.scale_max",),
                 step=10,
+                end=(self.ctx.setup.zscale.fit_range, "[$event]"),
                 **SLIDER_PROPS,
             ):
                 SliderValue("&times;{{ controls.zscale.scale }}")

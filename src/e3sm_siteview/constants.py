@@ -611,6 +611,8 @@ SITES = [
 
 SITES_LAT_LON = {site["value"]: (site["lat"], site["lon"]) for site in SITES}
 
+ZSCALE_MAX = 5000
+
 
 VUETIFY_CONFIG = {
     "theme": {
