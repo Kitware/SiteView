@@ -75,6 +75,13 @@ class Welcome(v4.VCard):
 
                 v4.VDivider()
                 with v4.VCardActions(classes="px-6 py-3"):
+                    v4.VBtn(
+                        "Import state",
+                        prepend_icon="mdi-file-upload-outline",
+                        variant="text",
+                        # Opens the StateFileInput
+                        click="utils.get('document').getElementById('siteview-state-file').click()",
+                    )
                     v4.VSpacer()
                     v4.VBtn(
                         "Getting started",

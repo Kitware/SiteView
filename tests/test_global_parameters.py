@@ -111,3 +111,32 @@ def test_zscale_fit_range(setup):
     assert zscale.scale_max == 4 * ZSCALE_MAX
     zscale.fit_range(100)
     assert zscale.scale_max == ZSCALE_MAX
+
+
+def test_settings_round_trip(setup):
+    setup.time_index = 2
+    setup.active_viz = ["volume", "histogram"]
+    setup.histogram.update(range=(0.2, 1.0), snap_min=None)
+    setup.column.altitude_range = (1, 3)
+    setup.line_chart.update(fields=["T", "PS"], columns=[5, 6])
+    # As read from a state file
+    settings = json.loads(json.dumps(setup.get_settings()))
+
+    setup.time_index = 0
+    setup.active_viz = []
+    setup.histogram.update(range=(0, 1), snap_min=0)
+    setup.column.altitude_range = (0, 3)
+    setup.line_chart.update(fields=[], columns=[])
+
+    setup.set_settings(settings)
+    assert json.loads(json.dumps(setup.get_settings())) == settings
+    # Watchers ran
+    assert setup.time_value == 2
+
+
+def test_set_settings_keeps_missing(setup):
+    setup.cloud.opacity = 0.25
+    setup.set_settings({"time_index": 1, "line_chart": {"columns": [5]}})
+    assert setup.time_index == 1
+    assert setup.line_chart.columns == [5]
+    assert setup.cloud.opacity == 0.25

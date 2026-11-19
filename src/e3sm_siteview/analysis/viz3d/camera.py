@@ -6,9 +6,23 @@ from trame.decorators import controller
 from vtkmodules.vtkCommonCore import vtkMath
 from vtkmodules.vtkCommonTransforms import vtkTransform
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera
+from vtkmodules.vtkRenderingCore import vtkCamera
 
 from e3sm_siteview.analysis.viz3d.constants import CLICK_TOLERANCE, EARTH_AXIS
 from e3sm_siteview.io import EARTH_RADIUS
+
+# Shared by all the 3D views so they stay in sync
+CAMERA = vtkCamera()
+CAMERA_PROPERTIES = ("position", "focal_point", "view_up", "clipping_range")
+
+
+def get_camera_state():
+    return {name: list(getattr(CAMERA, name)) for name in CAMERA_PROPERTIES}
+
+
+def set_camera_state(camera_state):
+    for name in CAMERA_PROPERTIES:
+        setattr(CAMERA, name, camera_state[name])
 
 
 def _rotate_camera(camera, angle, axis, center):

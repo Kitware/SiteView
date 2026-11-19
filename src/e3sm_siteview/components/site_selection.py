@@ -6,6 +6,9 @@ from trame.widgets import vuetify4 as v4
 
 from e3sm_siteview import constants, module
 
+# State of the selected site and region
+SITE_KEYS = ("site_selected", "site_lat", "site_lon", "site_radius", "site_radius_unit")
+
 
 class CoordinatePreview(html.Div):
     """Equirectangular map: click or drag to move the site, scroll for radius"""

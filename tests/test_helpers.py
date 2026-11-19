@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from e3sm_siteview.analysis.viz3d.camera import get_camera_state, set_camera_state
 from e3sm_siteview.analysis.viz3d.histogram import snap_bound
 from e3sm_siteview.data_models import format_lat_lon, normalize_lon, time_dates
 
@@ -56,3 +57,14 @@ def testsnap_bound():
     assert snap_bound(values, mask, 50, 0.0) == pytest.approx(2.5)
     # Nothing left after masking
     assert snap_bound(values, np.zeros_like(mask), 50, 0.0) == 0.0
+
+
+def test_camera_state():
+    camera_state = {
+        "position": [1.0, 2.0, 3.0],
+        "focal_point": [0.5, 0.5, 0.5],
+        "view_up": [0.0, 1.0, 0.0],
+        "clipping_range": [0.1, 10.0],
+    }
+    set_camera_state(camera_state)
+    assert get_camera_state() == camera_state

@@ -5,10 +5,17 @@ from trame.widgets import vuetify4 as v4
 
 from e3sm_siteview import constants
 from e3sm_siteview.assets import ASSETS
-from e3sm_siteview.components import footer, header, setup, shortcuts, welcome
+from e3sm_siteview.cli import configure_and_parse
+from e3sm_siteview.components import (
+    footer,
+    header,
+    setup,
+    shortcuts,
+    state_file,
+    welcome,
+)
+from e3sm_siteview.components.site_selection import SITE_KEYS
 from e3sm_siteview.viewer import create_viewers
-
-SITE_KEYS = ("site_selected", "site_lat", "site_lon", "site_radius", "site_radius_unit")
 
 
 class E3smSiteView(TrameApp):
@@ -22,7 +29,11 @@ class E3smSiteView(TrameApp):
         if self.server.hot_reload:
             self.server.controller.on_server_reload.add(self._build_ui)
 
-        create_viewers(self.server)
+        options = configure_and_parse(self.server.cli)
+        create_viewers(self.server, options.cf, options.df)
+        self.state_file = state_file.StateFile(
+            self.server, options, self._load_analyses
+        )
 
         # Deferred UI initialization
         rca.initialize(self.server)
@@ -45,6 +56,7 @@ class E3smSiteView(TrameApp):
             theme=("siteview_theme",),
         ) as self.ui:
             with v4.VLayout():
+                state_file.StateFileInput()
                 header.AppHeader()
                 with self.ctx.setup.provide_as("controls"):
                     shortcuts.KeyboardShortcuts(self.ctrl.reset_camera)
@@ -128,15 +140,19 @@ class E3smSiteView(TrameApp):
         await self.server.network_completion
         with self.state:
             try:
-                if not self.ctx.setup.data_loaded:
-                    list_of_analysis = [a[0] for a in self.ctx.setup.available_analysis]
-                    for viewer in self.ctx.viewers.values():
-                        viewer.add_analysis(*list_of_analysis)
-                    self.ctx.setup.data_loaded = True
-                else:
-                    self.refresh_analyses_data()
+                self._load_analyses()
             finally:
                 self.state.siteview_loading = ""
+
+    def _load_analyses(self):
+        """Create the analyses of the selected fields, or refresh their data"""
+        if not self.ctx.setup.data_loaded:
+            list_of_analysis = [a[0] for a in self.ctx.setup.available_analysis]
+            for viewer in self.ctx.viewers.values():
+                viewer.add_analysis(*list_of_analysis)
+            self.ctx.setup.data_loaded = True
+        else:
+            self.refresh_analyses_data()
 
     def refresh_analyses_data(self):
         for viewer in self.ctx.viewers.values():

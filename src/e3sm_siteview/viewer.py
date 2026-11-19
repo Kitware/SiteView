@@ -8,7 +8,7 @@ from trame.widgets import client
 from trame.widgets import vuetify4 as v4
 
 from e3sm_siteview.analysis import create_analysis, load_all_analysis
-from e3sm_siteview.cli import configure_and_parse
+from e3sm_siteview.analysis.viz3d import NAME as VIZ3D
 from e3sm_siteview.data_models import GlobalParameters, VisualizationAnalysis
 from e3sm_siteview.io import EAMColumnSource, EAMMeshSource, EAMSurfaceSource
 
@@ -47,12 +47,11 @@ def compute_data_regions(lon_min, lon_max, lat_min, lat_max):
     return [(lon_o * 100, lat_o, lon_w * 100, lat_h) for lon_o, lon_w in x_percent]
 
 
-def create_viewers(server):
+def create_viewers(server, connectivity_file, data_files):
     load_all_analysis()
-    options = configure_and_parse(server.cli)
 
     mesh_algo = EAMMeshSource()
-    mesh_algo.SetFileName(str(Path(options.cf).resolve()))
+    mesh_algo.SetFileName(str(Path(connectivity_file).resolve()))
     mesh_algo.Update()
     server.context.mesh_algo = mesh_algo
     server.context.mesh = mesh_algo.GetOutputDataObject(0)
@@ -65,7 +64,7 @@ def create_viewers(server):
     )
 
     # Load fields
-    for data_file in options.df:
+    for data_file in data_files:
         viewer = E3SMAnalyser(
             server,
             Path(data_file).resolve(),
@@ -167,3 +166,8 @@ class E3SMAnalyser(TrameComponent):
     @property
     def analyses(self):
         return self._analysis.values()
+
+    @property
+    def colormaps(self):
+        viz = self._analysis[VIZ3D]
+        return {"volume": viz.colormap_config, "surface": viz.surface_colormap_config}

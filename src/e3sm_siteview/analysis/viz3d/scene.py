@@ -28,7 +28,6 @@ from vtkmodules.vtkRenderingCore import (
     vtkActor,
     vtkAssembly,
     vtkBillboardTextActor3D,
-    vtkCamera,
     vtkCellPicker,
     vtkDataSetMapper,
     vtkRenderer,
@@ -37,7 +36,10 @@ from vtkmodules.vtkRenderingCore import (
     vtkTexture,
 )
 
-from e3sm_siteview.analysis.viz3d.camera import create_north_up_interactor_style
+from e3sm_siteview.analysis.viz3d.camera import (
+    CAMERA,
+    create_north_up_interactor_style,
+)
 from e3sm_siteview.analysis.viz3d.constants import (
     COLUMN_MARKER_AMBIENT,
     COLUMN_MARKER_AREA_FRACTION,
@@ -57,9 +59,6 @@ from e3sm_siteview.io import (
     EAMLevelCylinder,
     EAMProject,
 )
-
-# Shared by all the 3D views so they stay in sync
-CAMERA = vtkCamera()
 
 
 class SceneMixin:
