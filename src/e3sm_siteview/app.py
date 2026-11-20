@@ -9,9 +9,9 @@ from e3sm_siteview.cli import configure_and_parse
 from e3sm_siteview.components import (
     footer,
     header,
+    import_export_state,
     setup,
     shortcuts,
-    state_file,
     welcome,
 )
 from e3sm_siteview.components.site_selection import SITE_KEYS
@@ -31,7 +31,7 @@ class E3smSiteView(TrameApp):
 
         options = configure_and_parse(self.server.cli)
         create_viewers(self.server, options.cf, options.df)
-        self.state_file = state_file.StateFile(
+        self.import_export_state = import_export_state.ImportExportState(
             self.server, options, self._load_analyses
         )
 
@@ -56,7 +56,7 @@ class E3smSiteView(TrameApp):
             theme=("siteview_theme",),
         ) as self.ui:
             with v4.VLayout():
-                state_file.StateFileInput()
+                import_export_state.ImportFile()
                 header.AppHeader()
                 with self.ctx.setup.provide_as("controls"):
                     shortcuts.KeyboardShortcuts(self.ctrl.reset_camera)

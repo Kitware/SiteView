@@ -79,8 +79,8 @@ class Welcome(v4.VCard):
                         "Import state",
                         prepend_icon="mdi-file-upload-outline",
                         variant="text",
-                        # Opens the StateFileInput
-                        click="utils.get('document').getElementById('siteview-state-file').click()",
+                        # Opens the ImportFile input
+                        click="utils.get('document').getElementById('siteview-import-file').click()",
                     )
                     v4.VSpacer()
                     v4.VBtn(

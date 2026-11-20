@@ -3,7 +3,7 @@ from trame.widgets import vuetify4 as v4
 
 from e3sm_siteview.assets import ASSETS
 from e3sm_siteview.components.footer import TooltipButton
-from e3sm_siteview.components.state_file import StateMenu
+from e3sm_siteview.components.import_export_state import ImportExportMenu
 
 N_FIELDS = (
     "controls.variables_2d.filter(v => v.selected).length"
@@ -87,7 +87,7 @@ class AppHeader(v4.VAppBar):
                     value=("v[0]",),
                 )
 
-            StateMenu()
+            ImportExportMenu()
 
             TooltipButton(
                 "controls.dark ? 'Light theme' : 'Dark theme'",

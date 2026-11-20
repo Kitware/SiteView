@@ -1,5 +1,3 @@
-"""State files: save the analysis to a JSON file and restore it"""
-
 import json
 import os
 from datetime import datetime
@@ -33,7 +31,7 @@ COLORMAP_KEYS = (
 )
 
 
-class StateFile(TrameComponent):
+class ImportExportState(TrameComponent):
     """Export the analysis to a state file and import it back.
 
     ``options`` are the parsed command line arguments: their data files are
@@ -86,14 +84,16 @@ class StateFile(TrameComponent):
             indent=2,
         )
 
-    @change("siteview_state_file")
-    async def _on_state_file(self, siteview_state_file, **_):
-        if siteview_state_file is None:
+    @change("siteview_state_file_to_import")
+    async def _on_state_file_to_import(self, siteview_state_file_to_import, **_):
+        if siteview_state_file_to_import is None:
             return
         # Reset the input so that the same file can be imported again
         with self.state:
-            self.state.siteview_state_file = None
-        await self.import_state(json.loads(ClientFile(siteview_state_file).content))
+            self.state.siteview_state_file_to_import = None
+        await self.import_state(
+            json.loads(ClientFile(siteview_state_file_to_import).content)
+        )
 
     async def import_state(self, content):
         site = {k: content["site"][k] for k in SITE_KEYS}
@@ -144,18 +144,18 @@ class StateFile(TrameComponent):
                 self.state.siteview_loading = ""
 
 
-def StateFileInput():
-    """Hidden input uploading the picked file to the "siteview_state_file" state.
+def ImportFile():
+    """Hidden input uploading the picked file to "siteview_state_file_to_import".
     Import buttons open it by clicking it."""
     return v4.VFileInput(
-        id="siteview-state-file",
-        v_model=("siteview_state_file", None),
+        id="siteview-import-file",
+        v_model=("siteview_state_file_to_import", None),
         accept=".json,application/json",
         classes="d-none",
     )
 
 
-class StateMenu(v4.VMenu):
+class ImportExportMenu(v4.VMenu):
     """Export the analysis to a state file or import one (needs "controls")"""
 
     def __init__(self):
@@ -164,7 +164,7 @@ class StateMenu(v4.VMenu):
         with self:
             with v4.Template(v_slot_activator="{ props }"):
                 TooltipButton(
-                    "'State file'",
+                    "'Import / export state'",
                     v_bind="props",
                     icon="mdi-folder-arrow-left-right-outline",
                     variant="text",
@@ -184,5 +184,5 @@ class StateMenu(v4.VMenu):
                     title="Import state",
                     subtitle="Restore a saved state file",
                     prepend_icon="mdi-file-upload-outline",
-                    click="utils.get('document').getElementById('siteview-state-file').click()",
+                    click="utils.get('document').getElementById('siteview-import-file').click()",
                 )
