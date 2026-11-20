@@ -50,7 +50,6 @@ class ColumnHeatMap(TrameComponent):
         self._subscribe(
             self.ctx.setup.column, ["altitude_range"], self._compute_heatmap
         )
-        self._subscribe(self.ctx.setup.volume, ["color_by"], self._sync_color_by)
         self._subscribe(self.ctx.setup, ["col_ids_str"], self._select_center_column)
 
     def unbind_reactivity(self):
@@ -61,9 +60,6 @@ class ColumnHeatMap(TrameComponent):
         # The column closest to the region center comes first
         col_ids = json.loads(self.ctx.setup.col_ids_str)
         self.ctx.setup.surface_chart.column = col_ids[0] if col_ids else None
-
-    def _sync_color_by(self, color_by):
-        self.ctx.setup.surface_chart.color_by = color_by
 
     def _time_labels(self):
         tdim = self.single_column_reader.GetDimensions().get("time")

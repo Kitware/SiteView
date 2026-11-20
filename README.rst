@@ -16,6 +16,7 @@ Features
 * **Cell time charts** comparing one or more fields across several columns over time.
 * Heatmaps and charts can be downloaded.
 * **Time animation** with play/pause and step controls across all the loaded files.
+* **State files** to save an analysis and restore it later.
 * Light and dark themes.
 
 .. image:: https://raw.githubusercontent.com/Kitware/SiteView/main/SiteView-setup.png
@@ -69,10 +70,25 @@ Option                 Description
 ``--server``           Do not open a browser at startup (e.g. when running remotely)
 ``-p, --port PORT``    Port to serve the application on
 ``--host HOST``        Network interface to bind to (use ``0.0.0.0`` to allow remote access)
+``--state FILE``       Restore a state file (see below)
 ``--perf``             Print performance timing on stderr (``[PERF]`` lines)
 =====================  ==============================================================
 
 Run ``e3sm-siteview --help`` for the full list of options.
+
+State files
+----------------------------------------
+
+Once the data is loaded, *Export state* in the header menu saves the analysis to a ``siteview-state.json`` file:
+the site and region, the loaded fields, the time step, the 3D view layers and their settings, the charts, the colormaps and the camera.
+*Import state*, in the same menu or in the welcome dialog, restores it.
+The fields are matched by name and the colormaps by data file order, so a state file also applies to other data files holding the same fields.
+
+A state file can also be restored at startup. Its data files are loaded unless ``--cf`` or ``--df`` is given:
+
+.. code-block:: console
+
+    e3sm-siteview --state siteview-state.json
 
 Keyboard shortcuts
 ----------------------------------------

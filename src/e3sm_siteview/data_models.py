@@ -178,6 +178,24 @@ class CellTimeCharts(dataclass.StateDataModel):
     results = dataclass.Sync(list, list)
 
 
+# Fields saved in the state files, the others derive from the data:
+# GlobalParameters fields, then the fields of each of its controls
+SETTINGS = ("time_index", "active_analysis", "active_viz", "camera_focus", "show_tools")
+CONTROLS_SETTINGS = {
+    "cloud": ("show", "threshold_by", "threshold_value", "opacity"),
+    "surface": ("show", "color_by"),
+    "volume": ("show", "color_by"),
+    "vslice": ("show", "orientation", "edges"),
+    "hslice": ("show", "altitude", "edges"),
+    "find_data": ("show", "formula"),
+    "histogram": ("show", "range", "snap_min", "snap_max"),
+    "column": ("show", "altitude_range"),
+    "zscale": ("show", "scale", "scale_max"),
+    "surface_chart": ("color_by", "column", "extra_fields"),
+    "line_chart": ("fields", "columns"),
+}
+
+
 class GlobalParameters(dataclass.StateDataModel):
     # Data handling
     readers = dataclass.ServerOnly(set, set)
@@ -283,6 +301,20 @@ class GlobalParameters(dataclass.StateDataModel):
 
     def push_volume_color_by_to_surface_chart(self, *_):
         self.surface_chart.color_by = self.volume.color_by
+
+    def get_settings(self):
+        """User settings saved in the state files"""
+        settings = {name: getattr(self, name) for name in SETTINGS}
+        for name, fields in CONTROLS_SETTINGS.items():
+            controls = getattr(self, name)
+            settings[name] = {field: getattr(controls, field) for field in fields}
+        return settings
+
+    def set_settings(self, settings):
+        """Apply get_settings() content, missing settings are left unchanged"""
+        self.update(**{k: v for k, v in settings.items() if k in SETTINGS})
+        for name in CONTROLS_SETTINGS:
+            getattr(self, name).update(**settings.get(name, {}))
 
     @dataclass.watch("time_values", sync=True)
     def _on_time_values(self, values):
