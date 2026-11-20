@@ -99,7 +99,7 @@ class ImportExportState(TrameComponent):
         site = {k: content["site"][k] for k in SITE_KEYS}
         fields = set(content["fields"])
         settings = content["settings"]
-        saved_colormaps = content["colormaps"]
+        colormaps = content["colormaps"]
         camera = content["camera"]
 
         setup = self.ctx.setup
@@ -118,24 +118,19 @@ class ImportExportState(TrameComponent):
             with self.state:
                 self._load_analyses()
 
-            colormaps = [
-                (viewer.colormaps[layer], values)
-                for viewer, layers in zip(
-                    self.ctx.viewers.values(), saved_colormaps, strict=False
-                )
-                for layer, values in layers.items()
-            ]
-            models = [setup, setup.volume, *(colormap for colormap, _ in colormaps)]
-            # Apply twice: the watchers reset some values on the first pass
-            # (heat map column and field on a new region and volume field,
-            # camera on a new focus, colormap range on a new diverging mode)
-            for _ in range(2):
-                setup.set_settings(settings)
-                for colormap, values in colormaps:
+            setup.set_settings(settings)
+            for viewer, layers in zip(
+                self.ctx.viewers.values(), colormaps, strict=False
+            ):
+                for layer, values in layers.items():
+                    colormap = viewer.colormaps[layer]
+                    # Entering or leaving diverging mode resets the range and
+                    # log scale: switch it, let its watcher run, then restore
+                    colormap.diverging = values["diverging"]
+                    await colormap.completion()
                     colormap.update(**values)
-                for model in models:
-                    await model.completion()
 
+            await setup.completion()  # a new camera focus resets the camera
             self.ctrl.apply_find_data()
             set_camera_state(camera)
             self.ctrl.render()
